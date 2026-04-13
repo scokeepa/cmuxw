@@ -100,6 +100,9 @@ public partial class SettingsWindow : Window
         ConfirmCloseCheck.IsChecked = s.ConfirmOnClose;
         AutoCopyCheck.IsChecked = s.AutoCopyOnSelect;
         CtrlClickUrlCheck.IsChecked = s.CtrlClickOpensUrls;
+        BrowserDefaultUrlBox.Text = string.IsNullOrWhiteSpace(s.BrowserDefaultUrl)
+            ? "https://github.com/scokeepa/cmuxw/blob/master/docs/USER_GUIDE.md"
+            : s.BrowserDefaultUrl;
         AutoSaveBox.Text = s.AutoSaveIntervalSeconds.ToString();
         LogRetentionDaysBox.Text = Math.Clamp(s.CommandLogRetentionDays, 0, 3650).ToString();
         CaptureOnCloseCheck.IsChecked = s.CaptureTranscriptsOnClose;
@@ -214,6 +217,7 @@ public partial class SettingsWindow : Window
         s.ConfirmOnClose = ConfirmCloseCheck.IsChecked == true;
         s.AutoCopyOnSelect = AutoCopyCheck.IsChecked == true;
         s.CtrlClickOpensUrls = CtrlClickUrlCheck.IsChecked == true;
+        s.BrowserDefaultUrl = (BrowserDefaultUrlBox.Text ?? "").Trim();
         if (int.TryParse(AutoSaveBox.Text, out int asv)) s.AutoSaveIntervalSeconds = asv;
         if (int.TryParse(LogRetentionDaysBox.Text, out int retentionDays))
             s.CommandLogRetentionDays = Math.Clamp(retentionDays, 0, 3650);

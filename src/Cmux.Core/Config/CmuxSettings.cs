@@ -44,6 +44,7 @@ public class CmuxSettings
     public bool ConfirmOnClose { get; set; } = true;
     public bool AutoCopyOnSelect { get; set; } = false;
     public bool CtrlClickOpensUrls { get; set; } = true;
+    public string BrowserDefaultUrl { get; set; } = "https://github.com/scokeepa/cmuxw/blob/master/docs/USER_GUIDE.md";
     public int AutoSaveIntervalSeconds { get; set; } = 30;
     public bool CaptureTranscriptsOnClose { get; set; } = true;
     public bool CaptureTranscriptsOnClear { get; set; } = true;

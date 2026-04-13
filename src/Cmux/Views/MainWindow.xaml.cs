@@ -19,7 +19,7 @@ namespace Cmux.Views;
 
 public partial class MainWindow : Window
 {
-    private const string DefaultBrowserUrl = "https://github.com/manaflow-ai/cmux";
+    private const string FallbackBrowserUrl = "https://github.com/scokeepa/cmuxw/blob/master/docs/USER_GUIDE.md";
     private MainViewModel ViewModel => (MainViewModel)DataContext;
     private readonly DispatcherTimer _uiRefreshTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
     private ICollectionView? _workspaceView;
@@ -767,9 +767,25 @@ public partial class MainWindow : Window
         if (surface == null)
             return;
 
+        var targetUrl = ResolveDefaultBrowserUrl();
         // Keep browser launch one-click, matching cmux-style behavior.
-        if (surface.OpenBrowserOnRight(DefaultBrowserUrl))
+        if (surface.OpenBrowserOnRight(targetUrl))
             RequestTerminalFocusAfterNavigation();
+    }
+
+    private static string ResolveDefaultBrowserUrl()
+    {
+        var configured = (Cmux.Core.Config.SettingsService.Current.BrowserDefaultUrl ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            return FallbackBrowserUrl;
+
+        if (Uri.TryCreate(configured, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            return configured;
+        }
+
+        return FallbackBrowserUrl;
     }
 
 
