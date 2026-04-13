@@ -424,10 +424,19 @@ public partial class MainViewModel : ObservableObject
                 "WORKSPACE.LIST" => HandleWorkspaceList(),
                 "WORKSPACE.CREATE" => HandleWorkspaceCreate(args),
                 "WORKSPACE.SELECT" => HandleWorkspaceSelect(args),
+                "WORKSPACE.CLOSE" => HandleWorkspaceClose(args),
+                "WORKSPACE.RENAME" => HandleWorkspaceRename(args),
+                "WORKSPACE.CURRENT" => HandleWorkspaceCurrent(args),
+                "WORKSPACE.NEXT" => HandleWorkspaceAction("next"),
+                "WORKSPACE.PREVIOUS" => HandleWorkspaceAction("previous"),
                 "SURFACE.CREATE" => HandleSurfaceCreate(args),
                 "SURFACE.SELECT" => HandleSurfaceSelect(args),
-                "SPLIT.RIGHT" => HandleSplit(SplitDirection.Vertical),
-                "SPLIT.DOWN" => HandleSplit(SplitDirection.Horizontal),
+                "SURFACE.LIST" => HandleSurfaceList(args),
+                "SURFACE.CLOSE" => HandleSurfaceClose(args),
+                "SURFACE.NEXT" => HandleSurfaceAction(args, "next"),
+                "SURFACE.PREVIOUS" => HandleSurfaceAction(args, "previous"),
+                "SPLIT.RIGHT" => HandleSplit(args, SplitDirection.Vertical),
+                "SPLIT.DOWN" => HandleSplit(args, SplitDirection.Horizontal),
                 "PANE.LIST" => HandlePaneList(args),
                 "PANE.FOCUS" => HandlePaneFocus(args),
                 "PANE.WRITE" => HandlePaneWrite(args),
@@ -508,10 +517,97 @@ public partial class MainViewModel : ObservableObject
         return JsonSerializer.Serialize(new { error = "Workspace not found" });
     }
 
+    private string HandleWorkspaceClose(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (Workspaces.Count <= 1)
+            return JsonSerializer.Serialize(new { error = "Cannot close the last workspace." });
+
+        var workspaceId = workspace.Workspace.Id;
+        CloseWorkspace(workspace);
+
+        return JsonSerializer.Serialize(new { ok = true, workspaceId });
+    }
+
+    private string HandleWorkspaceRename(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var title = args.GetValueOrDefault("title")
+            ?? args.GetValueOrDefault("name")
+            ?? args.GetValueOrDefault("_arg0")
+            ?? "";
+
+        if (string.IsNullOrWhiteSpace(title))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: title" });
+
+        workspace.Name = title.Trim();
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+        });
+    }
+
+    private string HandleWorkspaceCurrent(Dictionary<string, string> args)
+    {
+        var workspace = SelectedWorkspace ?? Workspaces.FirstOrDefault();
+        if (workspace == null)
+            return JsonSerializer.Serialize(new { error = "No workspace available." });
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+        });
+    }
+
+    private string HandleWorkspaceAction(string action)
+    {
+        switch (action.ToLowerInvariant())
+        {
+            case "next":
+                NextWorkspace();
+                break;
+            case "previous":
+                PreviousWorkspace();
+                break;
+            default:
+                return JsonSerializer.Serialize(new { error = $"Unsupported workspace action: {action}" });
+        }
+
+        var workspace = SelectedWorkspace;
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            action,
+            workspaceId = workspace?.Workspace.Id ?? "",
+            workspaceName = workspace?.Name ?? "",
+        });
+    }
+
     private string HandleSurfaceCreate(Dictionary<string, string> args)
     {
-        SelectedWorkspace?.CreateNewSurface();
-        return JsonSerializer.Serialize(new { ok = true });
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        SelectedWorkspace = workspace;
+        workspace.CreateNewSurface();
+
+        var surface = workspace.SelectedSurface;
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            surfaceId = surface?.Surface.Id ?? "",
+            surfaceName = surface?.Name ?? "",
+        });
     }
 
     private string HandleSurfaceSelect(Dictionary<string, string> args)
@@ -535,10 +631,101 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
-    private string HandleSplit(SplitDirection direction)
+    private string HandleSurfaceList(Dictionary<string, string> args)
     {
-        SelectedWorkspace?.SelectedSurface?.SplitFocused(direction);
-        return JsonSerializer.Serialize(new { ok = true });
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var surfaces = workspace.Surfaces
+            .Select((s, idx) => new
+            {
+                index = idx + 1,
+                id = s.Surface.Id,
+                name = s.Name,
+                selected = s == workspace.SelectedSurface,
+            })
+            .ToList();
+
+        return JsonSerializer.Serialize(new
+        {
+            workspace = new
+            {
+                id = workspace.Workspace.Id,
+                name = workspace.Name,
+            },
+            surfaces,
+        });
+    }
+
+    private string HandleSurfaceClose(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveSurface(workspace, args, out var surface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (workspace.Surfaces.Count <= 1)
+            return JsonSerializer.Serialize(new { error = "Cannot close the last surface." });
+
+        var surfaceId = surface.Surface.Id;
+        workspace.CloseSurface(surface);
+
+        return JsonSerializer.Serialize(new { ok = true, workspaceId = workspace.Workspace.Id, surfaceId });
+    }
+
+    private string HandleSurfaceAction(Dictionary<string, string> args, string action)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        SelectedWorkspace = workspace;
+
+        switch (action.ToLowerInvariant())
+        {
+            case "next":
+                workspace.NextSurface();
+                break;
+            case "previous":
+                workspace.PreviousSurface();
+                break;
+            default:
+                return JsonSerializer.Serialize(new { error = $"Unsupported surface action: {action}" });
+        }
+
+        var surface = workspace.SelectedSurface;
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            action,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            surfaceId = surface?.Surface.Id ?? "",
+            surfaceName = surface?.Name ?? "",
+        });
+    }
+
+    private string HandleSplit(Dictionary<string, string> args, SplitDirection direction)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveSurface(workspace, args, out var surface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        SelectedWorkspace = workspace;
+        workspace.SelectedSurface = surface;
+        surface.SplitFocused(direction);
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            surfaceId = surface.Surface.Id,
+            surfaceName = surface.Name,
+            direction = direction == SplitDirection.Vertical ? "right" : "down",
+        });
     }
 
     private string HandlePaneList(Dictionary<string, string> args)
@@ -848,17 +1035,35 @@ public partial class MainViewModel : ObservableObject
 
         workspace = defaultWorkspace;
 
-        if (args.TryGetValue("workspaceId", out var workspaceId) && !string.IsNullOrWhiteSpace(workspaceId))
+        var workspaceRef = args.GetValueOrDefault("workspace")
+            ?? args.GetValueOrDefault("workspaceRef")
+            ?? args.GetValueOrDefault("workspaceId");
+
+        if (!string.IsNullOrWhiteSpace(workspaceRef))
         {
-            var byId = Workspaces.FirstOrDefault(w => string.Equals(w.Workspace.Id, workspaceId, StringComparison.Ordinal));
-            if (byId == null)
+            var byId = Workspaces.FirstOrDefault(w => string.Equals(w.Workspace.Id, workspaceRef, StringComparison.Ordinal));
+            if (byId != null)
             {
-                error = $"Workspace id not found: {workspaceId}";
-                return false;
+                workspace = byId;
+                return true;
             }
 
-            workspace = byId;
-            return true;
+            if (TryParseRefIndex(workspaceRef, "workspace", out var workspaceRefIndex)
+                && TryResolveCollectionIndex(workspaceRefIndex, Workspaces.Count, out var resolvedRefIndex))
+            {
+                workspace = Workspaces[resolvedRefIndex];
+                return true;
+            }
+
+            if (int.TryParse(workspaceRef, out var workspaceNumeric)
+                && TryResolveCollectionIndex(workspaceNumeric, Workspaces.Count, out var resolvedNumericIndex))
+            {
+                workspace = Workspaces[resolvedNumericIndex];
+                return true;
+            }
+
+            error = $"Workspace id/ref/index not found: {workspaceRef}";
+            return false;
         }
 
         if (args.TryGetValue("workspaceName", out var workspaceName) && !string.IsNullOrWhiteSpace(workspaceName))
@@ -905,17 +1110,35 @@ public partial class MainViewModel : ObservableObject
 
         surface = defaultSurface;
 
-        if (args.TryGetValue("surfaceId", out var surfaceId) && !string.IsNullOrWhiteSpace(surfaceId))
+        var surfaceRef = args.GetValueOrDefault("surface")
+            ?? args.GetValueOrDefault("surfaceRef")
+            ?? args.GetValueOrDefault("surfaceId");
+
+        if (!string.IsNullOrWhiteSpace(surfaceRef))
         {
-            var byId = workspace.Surfaces.FirstOrDefault(s => string.Equals(s.Surface.Id, surfaceId, StringComparison.Ordinal));
-            if (byId == null)
+            var byId = workspace.Surfaces.FirstOrDefault(s => string.Equals(s.Surface.Id, surfaceRef, StringComparison.Ordinal));
+            if (byId != null)
             {
-                error = $"Surface id not found: {surfaceId}";
-                return false;
+                surface = byId;
+                return true;
             }
 
-            surface = byId;
-            return true;
+            if (TryParseRefIndex(surfaceRef, "surface", out var surfaceRefIndex)
+                && TryResolveCollectionIndex(surfaceRefIndex, workspace.Surfaces.Count, out var resolvedRefIndex))
+            {
+                surface = workspace.Surfaces[resolvedRefIndex];
+                return true;
+            }
+
+            if (int.TryParse(surfaceRef, out var surfaceNumeric)
+                && TryResolveCollectionIndex(surfaceNumeric, workspace.Surfaces.Count, out var resolvedNumericIndex))
+            {
+                surface = workspace.Surfaces[resolvedNumericIndex];
+                return true;
+            }
+
+            error = $"Surface id/ref/index not found: {surfaceRef}";
+            return false;
         }
 
         if (args.TryGetValue("surfaceName", out var surfaceName) && !string.IsNullOrWhiteSpace(surfaceName))
@@ -989,6 +1212,8 @@ public partial class MainViewModel : ObservableObject
         if (args.TryGetValue("paneId", out var requestedPaneId) && !string.IsNullOrWhiteSpace(requestedPaneId))
         {
             target = panes.FirstOrDefault(p => string.Equals(p.Id, requestedPaneId, StringComparison.Ordinal))?.Id;
+            if (target == null && TryParseRefIndex(requestedPaneId, "pane", out var paneRefIndex))
+                target = panes.FirstOrDefault(p => p.Index == paneRefIndex)?.Id;
             if (target == null)
             {
                 error = $"Pane id not found: {requestedPaneId}";
@@ -1085,6 +1310,19 @@ public partial class MainViewModel : ObservableObject
             return defaultValue;
 
         return bool.TryParse(value, out var parsed) ? parsed : defaultValue;
+    }
+
+    private static bool TryParseRefIndex(string raw, string prefix, out int index)
+    {
+        index = -1;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        var normalizedPrefix = prefix + ":";
+        if (!raw.StartsWith(normalizedPrefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return int.TryParse(raw[normalizedPrefix.Length..], out index);
     }
 
     private static Dictionary<string, string> ExtractPrefixedArgs(Dictionary<string, string> args, string prefix)
