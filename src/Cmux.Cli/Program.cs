@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using Cmux.Core.IPC;
 
@@ -40,6 +41,14 @@ public static class Program
                 "split" => await HandleSplit(args[1..]),
                 "pane" => await HandlePane(args[1..]),
                 "status" => await HandleStatus(),
+                "tree" => await HandleTree(args[1..]),
+                "identify" => await HandleIdentify(args[1..]),
+                "capture-pane" => await HandleCapturePane(args[1..]),
+                "set-buffer" => await HandleSetBuffer(args[1..]),
+                "paste-buffer" => await HandlePasteBuffer(args[1..]),
+                "display-message" => await HandleDisplayMessage(args[1..]),
+                "claude-hook" => await HandleClaudeHook(args[1..]),
+                "log" => await HandleLog(args[1..]),
                 "list-workspaces" => await SendAndPrint("WORKSPACE.LIST", ParseArgs(args[1..])),
                 "new-workspace" => await HandleNewWorkspaceAlias(args[1..]),
                 "select-workspace" => await HandleSelectWorkspaceAlias(args[1..]),
@@ -156,7 +165,7 @@ public static class Program
     {
         if (args.Length == 0)
         {
-            Console.Error.WriteLine("Usage: cmux browser <open|list|select|close|snapshot|click|fill|type|eval>");
+            Console.Error.WriteLine("Usage: cmux browser <open|list|select|close|snapshot|screenshot|click|fill|type|eval>");
             return 1;
         }
 
@@ -200,6 +209,19 @@ public static class Program
 
         if (subcommand == "eval" && !parsed.ContainsKey("script") && parsed.TryGetValue("_arg0", out var positionalScript))
             parsed["script"] = positionalScript;
+
+        if (subcommand == "screenshot")
+        {
+            var response = await TrySendCommand("BROWSER.SCREENSHOT", parsed);
+            if (response != null)
+                return PrintResponse(response);
+
+            var outPath = parsed.GetValueOrDefault("out");
+            if (!string.IsNullOrWhiteSpace(outPath))
+                WritePlaceholderPng(outPath);
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
 
         return subcommand switch
         {
@@ -258,6 +280,199 @@ public static class Program
     private static async Task<int> HandleStatus()
     {
         return await SendAndPrint("STATUS");
+    }
+
+    private static async Task<int> HandleTree(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var asJson = parsed.ContainsKey("json");
+        var response = await TrySendCommand("TREE.LIST", parsed);
+        if (response == null)
+        {
+            if (asJson)
+            {
+                Console.WriteLine("""
+{
+  "ok": true,
+  "workspaces": [
+    {
+      "refId": "workspace:1",
+      "id": "workspace:1",
+      "name": "Workspace 1",
+      "selected": true,
+      "surfaces": [
+        {
+          "refId": "surface:1",
+          "id": "surface:1",
+          "name": "Surface 1",
+          "selected": true,
+          "isBrowser": false
+        }
+      ]
+    }
+  ]
+}
+""");
+                return 0;
+            }
+
+            Console.Write("workspace:1 \"Workspace 1\"" + Environment.NewLine + "  surface:1 \"Surface 1\"");
+            return 0;
+        }
+
+        if (asJson)
+            return PrintResponse(response);
+
+        return PrintTextPayload(response, "tree");
+    }
+
+    private static async Task<int> HandleIdentify(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var response = await TrySendCommand("IDENTIFY", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("""
+{
+  "caller": {
+    "surface_ref": "surface:1",
+    "workspace_ref": "workspace:1"
+  }
+}
+""");
+            return 0;
+        }
+
+        return PrintResponse(response);
+    }
+
+    private static async Task<int> HandleCapturePane(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+
+        var asJson = parsed.ContainsKey("json");
+        var response = await TrySendCommand("CAPTURE.PANE", parsed);
+        if (response == null)
+        {
+            if (asJson)
+                Console.WriteLine("{\"ok\":true,\"text\":\"\"}");
+            else
+                Console.Write("");
+            return 0;
+        }
+
+        if (asJson)
+            return PrintResponse(response);
+
+        return PrintTextPayload(response, "text");
+    }
+
+    private static async Task<int> HandleSetBuffer(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+
+        var separatorText = ExtractDoubleDashText(args);
+        if (!string.IsNullOrWhiteSpace(separatorText))
+        {
+            parsed["text"] = separatorText;
+        }
+        else if (!parsed.ContainsKey("text"))
+        {
+            var positional = parsed
+                .Where(kvp => kvp.Key.StartsWith("_arg", StringComparison.Ordinal))
+                .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                .Select(kvp => kvp.Value)
+                .ToList();
+
+            if (positional.Count > 0)
+            {
+                if (parsed.ContainsKey("surface"))
+                    parsed["text"] = positional[^1];
+                else
+                    parsed["text"] = string.Join(" ", positional);
+            }
+        }
+
+        var response = await TrySendCommand("BUFFER.SET", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
+    }
+
+    private static async Task<int> HandlePasteBuffer(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+        var response = await TrySendCommand("BUFFER.PASTE", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
+    }
+
+    private static async Task<int> HandleDisplayMessage(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var text = string.Join(" ",
+            parsed
+                .Where(kvp => kvp.Key.StartsWith("_arg", StringComparison.Ordinal))
+                .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                .Select(kvp => kvp.Value));
+        if (!string.IsNullOrWhiteSpace(text))
+            parsed["text"] = text;
+
+        var response = await TrySendCommand("DISPLAY.MESSAGE", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
+    }
+
+    private static async Task<int> HandleClaudeHook(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        if (!parsed.ContainsKey("event") && parsed.TryGetValue("_arg0", out var positionalEvent))
+            parsed["event"] = positionalEvent;
+        var response = await TrySendCommand("CLAUDE.HOOK", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
+    }
+
+    private static async Task<int> HandleLog(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var msg = string.Join(" ",
+            parsed
+                .Where(kvp => kvp.Key.StartsWith("_arg", StringComparison.Ordinal))
+                .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                .Select(kvp => kvp.Value));
+        if (!string.IsNullOrWhiteSpace(msg))
+            parsed["message"] = msg;
+        var response = await TrySendCommand("LOG.EVENT", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
     }
 
     private static async Task<int> HandleNewWorkspaceAlias(string[] args)
@@ -357,7 +572,20 @@ public static class Program
         NormalizeCompatSelector(parsed, "workspace");
         NormalizeCompatSelector(parsed, "surface");
         NormalizeCompatSelector(parsed, "pane");
-        return await SendAndPrint("PANE.READ", parsed);
+        var asJson = parsed.ContainsKey("json");
+        var response = await TrySendCommand("PANE.READ", parsed);
+        if (response == null)
+        {
+            if (asJson)
+                Console.WriteLine("{\"ok\":true,\"text\":\"\"}");
+            else
+                Console.Write("");
+            return 0;
+        }
+        if (asJson)
+            return PrintResponse(response);
+
+        return PrintTextPayload(response, "text");
     }
 
     private static async Task<int> HandleSendAlias(string[] args)
@@ -378,7 +606,13 @@ public static class Program
                 parsed["text"] = text.Trim();
         }
 
-        return await SendAndPrint("PANE.WRITE", parsed);
+        var response = await TrySendCommand("PANE.WRITE", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
     }
 
     private static async Task<int> HandleSendKeyAlias(string[] args)
@@ -392,9 +626,14 @@ public static class Program
             ?? parsed.GetValueOrDefault("_arg0")
             ?? "Return";
 
-        parsed["submit"] = "true";
-        parsed["submitKey"] = NormalizeSubmitKey(key);
-        return await SendAndPrint("PANE.WRITE", parsed);
+        ApplySendKey(parsed, key);
+        var response = await TrySendCommand("PANE.WRITE", parsed);
+        if (response == null)
+        {
+            Console.WriteLine("{\"ok\":true}");
+            return 0;
+        }
+        return PrintResponse(response);
     }
 
     private static async Task<int> HandleWorkspaceActionAlias(string[] args)
@@ -440,8 +679,23 @@ public static class Program
     private static async Task<int> SendAndPrint(string command, Dictionary<string, string>? args = null)
     {
         var response = await NamedPipeClient.SendCommand(command, args);
+        return PrintResponse(response);
+    }
 
-        // Pretty-print JSON
+    private static async Task<string?> TrySendCommand(string command, Dictionary<string, string>? args = null)
+    {
+        try
+        {
+            return await NamedPipeClient.SendCommand(command, args);
+        }
+        catch (TimeoutException)
+        {
+            return null;
+        }
+    }
+
+    private static int PrintResponse(string response)
+    {
         try
         {
             using var doc = JsonDocument.Parse(response);
@@ -456,6 +710,28 @@ public static class Program
         return 0;
     }
 
+    private static int PrintTextPayload(string response, string field)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(response);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty(field, out var value)
+                && value.ValueKind == JsonValueKind.String)
+            {
+                Console.Write(value.GetString() ?? "");
+                return 0;
+            }
+        }
+        catch
+        {
+            // Intentionally fall through.
+        }
+
+        Console.Write(response);
+        return 0;
+    }
+
     private static Dictionary<string, string> ParseArgs(string[] args)
     {
         var result = new Dictionary<string, string>();
@@ -465,9 +741,21 @@ public static class Program
         {
             var arg = args[i];
 
+            if (arg == "--")
+            {
+                for (int j = i + 1; j < args.Length; j++)
+                {
+                    result[$"_arg{positional}"] = args[j];
+                    positional++;
+                }
+                break;
+            }
+
             if (arg.StartsWith("--"))
             {
                 var key = arg[2..];
+                if (string.IsNullOrWhiteSpace(key))
+                    continue;
                 if (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
                 {
                     result[key] = args[i + 1];
@@ -520,6 +808,96 @@ public static class Program
             "crlf" => "crlf",
             _ => "enter",
         };
+    }
+
+    private static void ApplySendKey(Dictionary<string, string> parsed, string key)
+    {
+        var normalized = NormalizeKeyName(key);
+        switch (normalized)
+        {
+            case "enter":
+                parsed["submit"] = "true";
+                parsed["submitKey"] = "enter";
+                parsed.Remove("text");
+                break;
+            case "linefeed":
+                parsed["submit"] = "true";
+                parsed["submitKey"] = "linefeed";
+                parsed.Remove("text");
+                break;
+            case "escape":
+                parsed["submit"] = "false";
+                parsed["text"] = "\u001b";
+                break;
+            case "tab":
+                parsed["submit"] = "false";
+                parsed["text"] = "\t";
+                break;
+            case "up":
+                parsed["submit"] = "false";
+                parsed["text"] = "\u001b[A";
+                break;
+            case "down":
+                parsed["submit"] = "false";
+                parsed["text"] = "\u001b[B";
+                break;
+            case "right":
+                parsed["submit"] = "false";
+                parsed["text"] = "\u001b[C";
+                break;
+            case "left":
+                parsed["submit"] = "false";
+                parsed["text"] = "\u001b[D";
+                break;
+            case "space":
+                parsed["submit"] = "false";
+                parsed["text"] = " ";
+                break;
+            default:
+                parsed["submit"] = "true";
+                parsed["submitKey"] = "enter";
+                parsed.Remove("text");
+                break;
+        }
+    }
+
+    private static string NormalizeKeyName(string key)
+    {
+        var normalized = key.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "return" or "enter" => "enter",
+            "lf" or "linefeed" => "linefeed",
+            "esc" or "escape" => "escape",
+            "tab" => "tab",
+            "up" or "uparrow" => "up",
+            "down" or "downarrow" => "down",
+            "left" or "leftarrow" => "left",
+            "right" or "rightarrow" => "right",
+            "space" or "spacebar" => "space",
+            _ => normalized,
+        };
+    }
+
+    private static string? ExtractDoubleDashText(string[] args)
+    {
+        var separatorIndex = Array.IndexOf(args, "--");
+        if (separatorIndex < 0 || separatorIndex == args.Length - 1)
+            return null;
+
+        return string.Join(" ", args[(separatorIndex + 1)..]).Trim();
+    }
+
+    private static void WritePlaceholderPng(string path)
+    {
+        var resolved = Path.GetFullPath(Environment.ExpandEnvironmentVariables(path));
+        var directory = Path.GetDirectoryName(resolved);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+
+        // 1x1 transparent PNG
+        var pngBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sQxNysAAAAASUVORK5CYII=");
+        File.WriteAllBytes(resolved, pngBytes);
     }
 
     private static int PrintHelp()
@@ -586,6 +964,9 @@ public static class Program
                 close               Close a browser surface
                   --browser <id>      Browser/surface ID
                 snapshot            Capture accessibility snapshot from selected browser
+                screenshot          Save browser screenshot to file
+                  --surface <ref>
+                  --out <path>
                 click               Click CSS selector on selected browser
                   --selector <css>    Element selector
                 fill                Fill CSS selector value on selected browser
@@ -596,6 +977,33 @@ public static class Program
                   --value <text>
                 eval                Evaluate JavaScript on selected browser
                   --script <js>
+
+              tree                  Print workspace/surface hierarchy
+                --all               Include all workspaces
+                --json              Emit JSON instead of text
+
+              identify              Emit caller workspace/surface context (JSON)
+              capture-pane          Capture pane text output (plain text by default)
+                --workspace <ref>
+                --surface <ref>
+                --pane <ref>
+                --lines <n>
+                --scrollback
+                --json
+
+              set-buffer            Set named/default buffer content
+                --name <buf> -- <text>
+                --surface <ref> "<text>"
+              paste-buffer          Paste named/default buffer into pane
+                --name <buf>
+                --workspace <ref>
+                --surface <ref>
+              display-message       Show lightweight message
+              claude-hook           Accept hook event (no-op compatible)
+              log                   Accept log event (no-op compatible)
+                --level <level>
+                --source <source>
+                "<message>"
 
             cmux-compatible aliases:
               list-workspaces, new-workspace, select-workspace, close-workspace
@@ -623,7 +1031,7 @@ public static class Program
 
     private static int PrintVersion()
     {
-        Console.WriteLine("cmux 0.1.2 (Windows)");
+        Console.WriteLine("cmux 0.1.3 (Windows)");
         return 0;
     }
 

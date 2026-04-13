@@ -49,8 +49,8 @@ public sealed class NamedPipeServer : IDisposable
 
                 await pipe.WaitForConnectionAsync(ct);
 
-                // Handle each connection on its own task
-                _ = Task.Run(() => HandleConnection(pipe, ct), ct);
+                // Handle inline for deterministic sequencing.
+                await HandleConnection(pipe, ct);
             }
             catch (OperationCanceledException)
             {
@@ -213,12 +213,9 @@ public static class NamedPipeClient
         var pipeName = string.IsNullOrEmpty(tag) ? "cmux" : $"cmux-{tag}";
 
         using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        using var cts = new CancellationTokenSource(timeoutMs);
-
-        await pipe.ConnectAsync(cts.Token);
-
-        using var reader = new StreamReader(pipe, Encoding.UTF8, leaveOpen: true);
-        using var writer = new StreamWriter(pipe, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
+        pipe.Connect(timeoutMs);
+        if (!pipe.IsConnected)
+            throw new TimeoutException("Timed out connecting to cmux pipe.");
 
         var sb = new StringBuilder(command);
         if (args != null)
@@ -230,9 +227,33 @@ public static class NamedPipeClient
             }
         }
 
-        await writer.WriteLineAsync(sb.ToString());
+        var payload = Encoding.UTF8.GetBytes(sb + "\n");
+        var writeTask = Task.Run(() => pipe.Write(payload, 0, payload.Length));
+        var writeCompleted = await Task.WhenAny(writeTask, Task.Delay(timeoutMs));
+        if (writeCompleted != writeTask)
+            throw new TimeoutException("Timed out sending command to cmux.");
+        await writeTask;
+        await Task.Run(pipe.Flush);
 
-        var response = await reader.ReadLineAsync(cts.Token);
+        var readTask = Task.Run(() =>
+        {
+            var bytes = new List<byte>(256);
+            while (true)
+            {
+                var ch = pipe.ReadByte();
+                if (ch < 0 || ch == '\n')
+                    break;
+                if (ch != '\r')
+                    bytes.Add((byte)ch);
+            }
+
+            return Encoding.UTF8.GetString(bytes.ToArray());
+        });
+        var completed = await Task.WhenAny(readTask, Task.Delay(timeoutMs));
+        if (completed != readTask)
+            throw new TimeoutException("Timed out waiting for cmux response.");
+
+        var response = await readTask;
         return response ?? "";
     }
 }

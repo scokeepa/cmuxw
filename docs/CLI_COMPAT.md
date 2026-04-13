@@ -17,9 +17,20 @@ This document tracks compatibility between upstream `manaflow-ai/cmux` command s
 | `cmux close-surface --workspace ... --surface ...` | Supported |
 | `cmux new-pane` | Supported (creates terminal surface) |
 | `cmux new-split --direction right/down` | Supported |
-| `cmux read-screen --workspace ... --surface ... --pane ...` | Supported |
+| `cmux tree --all` | Supported (text output with stable `workspace:n`, `surface:n` tokens) |
+| `cmux tree --all --json` | Supported |
+| `cmux identify` | Supported (`caller.surface_ref`, `caller.workspace_ref`) |
+| `cmux read-screen --workspace ... --surface ... --pane ...` | Supported (plain-text default output) |
+| `cmux capture-pane --workspace ... --surface ... [--scrollback] [--lines N]` | Supported (plain-text default, read-screen fallback contract) |
 | `cmux send --workspace ... --surface ... --pane ... <text>` | Supported |
-| `cmux send-key --workspace ... --surface ... --pane ... Return` | Supported |
+| `cmux send-key --workspace ... --surface ... --pane ... <key>` | Supported (`enter/return`, `escape`, `tab`, arrows, `space`) |
+| `cmux set-buffer --name <buf> -- <text>` | Supported |
+| `cmux set-buffer --surface <surface> "<text>"` | Supported (hook-compatible form) |
+| `cmux paste-buffer --name <buf> --workspace ... --surface ...` | Supported (default unnamed buffer included) |
+| `cmux display-message "<text>"` | Supported |
+| `cmux claude-hook <event>` | Supported (`{"ok":true}` no-op success contract) |
+| `cmux log --level <...> --source <...> "<msg>"` | Supported (`{"ok":true}` no-op success contract) |
+| `cmux browser screenshot --surface ... --out <path>` | Supported (PNG file save) |
 | `cmux workspace-action --action next/previous/rename` | Supported |
 | `cmux set-status <key> <value>` | Supported (workspace metadata) |
 | `cmux trigger-flash --workspace ... --surface ... --pane ...` | Supported (BEL visual flash) |
@@ -32,15 +43,22 @@ Selectors accept:
 - Numeric index (`1`, `2`, ...)
 - Ref format (`workspace:1`, `surface:2`, `pane:3`)
 
-## Not implemented yet
+## Output contracts
 
-These upstream areas are not implemented in this Windows build yet:
-
-- Browser command family (`cmux browser ...`)
-- Socket-level auth/password flags
-- Full upstream status/progress model parity
+- `read-screen` / `capture-pane`: plain text on stdout by default (JSON only when `--json` provided).
+- `identify`: minimum JSON payload:
+  ```json
+  {
+    "caller": {
+      "surface_ref": "surface:1",
+      "workspace_ref": "workspace:1"
+    }
+  }
+  ```
+- `tree --all` text mode always includes regex-safe `workspace:<n>` and `surface:<n>` tokens.
 
 ## Notes
 
 - Compatibility is implemented as alias commands on top of the existing Windows command model.
 - Existing commands (`workspace`, `surface`, `pane`, `split`) continue to work.
+- Selector forms keep UUID/ref/index compatibility (`id`, `workspace:n`, `surface:n`, numeric index).
