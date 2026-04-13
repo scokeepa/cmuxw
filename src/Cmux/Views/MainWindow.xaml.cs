@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using Microsoft.Win32;
 using Cmux.Controls;
 using Cmux.Core.Services;
 using Cmux.ViewModels;
@@ -93,7 +94,52 @@ public partial class MainWindow : Window
         }
 
         ApplyAgentChatFont(settings);
+        UpdateThemeToggleButton(settings.ThemeName);
         RefreshSurfaceUiState();
+    }
+
+    private void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        var settings = Cmux.Core.Config.SettingsService.Current;
+        var isLight = IsLightTheme(settings.ThemeName);
+        settings.ThemeName = isLight ? "Default Dark" : "Default Light";
+        Cmux.Core.Config.SettingsService.Save();
+        Cmux.Core.Config.SettingsService.NotifyChanged();
+    }
+
+    private void UpdateThemeToggleButton(string? themeName)
+    {
+        var isLight = IsLightTheme(themeName);
+        ThemeToggleIcon.Text = isLight ? "\uE708" : "\uE706";
+        ThemeToggleButton.ToolTip = isLight ? L.T("Switch to Dark") : L.T("Switch to Light");
+    }
+
+    private static bool IsLightTheme(string? themeName)
+    {
+        var theme = (themeName ?? "").Trim();
+        if (theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("Light", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (theme.Equals("System", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("System Follow", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("Follow System", StringComparison.OrdinalIgnoreCase))
+            return IsSystemLightTheme();
+
+        return false;
+    }
+
+    private static bool IsSystemLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int value && value == 1;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void ApplyAgentChatFont(Cmux.Core.Config.CmuxSettings settings)
@@ -717,26 +763,13 @@ public partial class MainWindow : Window
 
     private void OpenBrowserSurface()
     {
-        var workspace = ViewModel.SelectedWorkspace;
-        if (workspace == null)
+        var surface = ViewModel.SelectedWorkspace?.SelectedSurface;
+        if (surface == null)
             return;
 
-        var prompt = new TextPromptWindow(
-            L.T("Open Browser"),
-            L.T("Enter a URL to open in a browser surface."),
-            DefaultBrowserUrl)
-        {
-            Owner = this
-        };
-
-        if (prompt.ShowDialog() != true)
-            return;
-
-        var url = (prompt.ResponseText ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(url))
-            return;
-
-        workspace.CreateBrowserSurface(url);
+        // Keep browser launch one-click, matching cmux-style behavior.
+        if (surface.OpenBrowserOnRight(DefaultBrowserUrl))
+            RequestTerminalFocusAfterNavigation();
     }
 
 

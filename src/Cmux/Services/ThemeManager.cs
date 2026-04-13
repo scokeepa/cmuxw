@@ -10,8 +10,8 @@ internal static class ThemeManager
     public static void ApplyTheme(string? themeName)
     {
         var theme = (themeName ?? "Default Dark").Trim();
-        var useLight = theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase)
-            || (theme.Equals("System", StringComparison.OrdinalIgnoreCase) && IsSystemLightTheme());
+        var useLight = IsLightTheme(theme)
+            || (IsSystemTheme(theme) && IsSystemLightTheme());
 
         if (Application.Current == null)
             return;
@@ -43,6 +43,19 @@ internal static class ThemeManager
         {
             return false;
         }
+    }
+
+    private static bool IsSystemTheme(string theme)
+    {
+        return theme.Equals("System", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("System Follow", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("Follow System", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLightTheme(string theme)
+    {
+        return theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("Light", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ApplyBrushColor(string key, string hex)

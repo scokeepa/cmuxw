@@ -771,6 +771,20 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         SplitFocused(SplitDirection.Vertical, shellPath);
     }
 
+    public bool OpenBrowserOnRight(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || FocusedPaneId == null)
+            return false;
+
+        SplitFocused(SplitDirection.Vertical);
+        var browserPaneId = FocusedPaneId;
+        if (string.IsNullOrWhiteSpace(browserPaneId))
+            return false;
+
+        SetBrowserPaneUrl(browserPaneId, url);
+        return true;
+    }
+
     [RelayCommand]
     public void ClosePane()
     {

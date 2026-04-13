@@ -2698,7 +2698,7 @@ internal sealed class McpProcessSession : IDisposable
             ["clientInfo"] = new Dictionary<string, object?>
             {
                 ["name"] = "cmux",
-                ["version"] = "1.0.7",
+                ["version"] = "0.1.2",
             },
         }, ct);
 

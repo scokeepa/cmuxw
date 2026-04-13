@@ -108,9 +108,12 @@ internal static class WindowAppearance
     private static bool ShouldUseDarkFrame()
     {
         var theme = (SettingsService.Current.ThemeName ?? "Default Dark").Trim();
-        if (theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase))
+        if (theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("Light", StringComparison.OrdinalIgnoreCase))
             return false;
-        if (theme.Equals("System", StringComparison.OrdinalIgnoreCase))
+        if (theme.Equals("System", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("System Follow", StringComparison.OrdinalIgnoreCase)
+            || theme.Equals("Follow System", StringComparison.OrdinalIgnoreCase))
             return !IsSystemLightTheme();
         return true;
     }

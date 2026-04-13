@@ -258,10 +258,26 @@ public static class TerminalThemes
 
     public static TerminalTheme Get(string name)
     {
-        if (string.Equals(name, "System", StringComparison.OrdinalIgnoreCase))
+        if (IsSystemTheme(name))
             return IsSystemLightTheme() ? BuiltIn[DefaultLightName] : BuiltIn[DefaultDarkName];
 
+        if (IsLightTheme(name))
+            return BuiltIn[DefaultLightName];
+
         return BuiltIn.TryGetValue(name, out var theme) ? theme : BuiltIn[DefaultDarkName];
+    }
+
+    private static bool IsSystemTheme(string? name)
+    {
+        return string.Equals(name, "System", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "System Follow", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Follow System", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLightTheme(string? name)
+    {
+        return string.Equals(name, "Default Light", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Light", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSystemLightTheme()

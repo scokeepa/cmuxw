@@ -32,8 +32,15 @@ public partial class SettingsWindow : Window
 
     private void PopulateThemes()
     {
-        ThemeCombo.ItemsSource = TerminalThemes.Names;
-        TerminalThemePresetCombo.ItemsSource = TerminalThemes.Names;
+        var names = TerminalThemes.Names.ToList();
+        var preferred = new[] { "Default Dark", "Default Light", "System" };
+        var orderedThemes = preferred
+            .Where(names.Contains)
+            .Concat(names.Where(n => !preferred.Contains(n, StringComparer.OrdinalIgnoreCase)))
+            .ToList();
+
+        ThemeCombo.ItemsSource = orderedThemes;
+        TerminalThemePresetCombo.ItemsSource = orderedThemes;
         CursorStyleCombo.ItemsSource = new[] { "bar", "block", "underline" };
 
         var fontFamilies = Fonts.SystemFontFamilies
