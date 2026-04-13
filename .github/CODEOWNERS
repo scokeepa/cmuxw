@@ -1,0 +1,11 @@
+# Default owner for all files
+* @scokeepa
+
+# Core app and engine
+src/Cmux/** @scokeepa
+src/Cmux.Core/** @scokeepa
+src/Cmux.Daemon/** @scokeepa
+
+# Automation and governance
+.github/** @scokeepa
+tests/** @scokeepa

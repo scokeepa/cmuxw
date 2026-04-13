@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible bug.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please provide clear reproduction steps.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the issue and expected behavior.
+      placeholder: When I run ..., I expected ..., but ...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide exact, ordered steps.
+      placeholder: |
+        1. Open ...
+        2. Press ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste logs, stack traces, or screenshots.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: App version or commit SHA.
+      placeholder: v0.1.0 / 8bb3f26
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2

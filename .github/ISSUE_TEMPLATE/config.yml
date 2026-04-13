@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage questions
+    url: https://github.com/scokeepa/kwcmux/blob/master/README.md
+    about: Check README first, then open a feature/bug issue if needed.
