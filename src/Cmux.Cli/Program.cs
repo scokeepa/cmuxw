@@ -53,6 +53,9 @@ public static class Program
                 "read-screen" => await HandleReadScreenAlias(args[1..]),
                 "send" => await HandleSendAlias(args[1..]),
                 "send-key" => await HandleSendKeyAlias(args[1..]),
+                "workspace-action" => await HandleWorkspaceActionAlias(args[1..]),
+                "set-status" => await HandleSetStatusAlias(args[1..]),
+                "trigger-flash" => await HandleTriggerFlashAlias(args[1..]),
                 "help" or "--help" or "-h" => PrintHelp(),
                 "version" or "--version" or "-v" => PrintVersion(),
                 _ => Error($"Unknown command: {command}"),
@@ -329,6 +332,46 @@ public static class Program
         return await SendAndPrint("PANE.WRITE", parsed);
     }
 
+    private static async Task<int> HandleWorkspaceActionAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var action = parsed.GetValueOrDefault("action")
+            ?? parsed.GetValueOrDefault("_arg0")
+            ?? "";
+        action = action.Trim().ToLowerInvariant();
+
+        return action switch
+        {
+            "next" => await SendAndPrint("WORKSPACE.NEXT", parsed),
+            "previous" or "prev" => await SendAndPrint("WORKSPACE.PREVIOUS", parsed),
+            "rename" => await SendAndPrint("WORKSPACE.RENAME", parsed),
+            _ => Error("workspace-action requires --action next|previous|rename"),
+        };
+    }
+
+    private static async Task<int> HandleSetStatusAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+
+        if (!parsed.ContainsKey("key"))
+            parsed["key"] = parsed.GetValueOrDefault("_arg0") ?? "";
+
+        if (!parsed.ContainsKey("value"))
+            parsed["value"] = parsed.GetValueOrDefault("_arg1") ?? "";
+
+        return await SendAndPrint("SET.STATUS", parsed);
+    }
+
+    private static async Task<int> HandleTriggerFlashAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+        return await SendAndPrint("TRIGGER.FLASH", parsed);
+    }
+
     private static async Task<int> SendAndPrint(string command, Dictionary<string, string>? args = null)
     {
         var response = await NamedPipeClient.SendCommand(command, args);
@@ -475,6 +518,7 @@ public static class Program
               rename-workspace, current-workspace
               list-surfaces, select-surface, close-surface
               new-pane, new-split, read-screen, send, send-key
+              workspace-action, set-status, trigger-flash
 
             Keyboard Shortcuts (in the app):
               Ctrl+N                New workspace

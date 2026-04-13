@@ -99,6 +99,7 @@ dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contain
 - Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Issue templates and PR template are enabled
 - `master` is protected and merge is PR-based
+- Upstream CLI compatibility matrix: [`docs/CLI_COMPAT.md`](docs/CLI_COMPAT.md)
 
 ## Release automation (templated notes)
 

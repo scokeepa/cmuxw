@@ -442,6 +442,8 @@ public partial class MainViewModel : ObservableObject
                 "PANE.WRITE" => HandlePaneWrite(args),
                 "PANE.READ" => HandlePaneRead(args),
                 "PANE.FORWARD" => HandlePaneForward(args),
+                "SET.STATUS" => HandleSetStatus(args),
+                "TRIGGER.FLASH" => HandleTriggerFlash(args),
                 "STATUS" => HandleStatus(),
                 _ => JsonSerializer.Serialize(new { error = $"Unknown command: {command}" }),
             };
@@ -1018,6 +1020,88 @@ public partial class MainViewModel : ObservableObject
             workspaces = Workspaces.Count,
             selectedWorkspace = SelectedWorkspace?.Workspace.Id,
             unreadNotifications = TotalUnreadCount,
+        });
+    }
+
+    private string HandleSetStatus(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var key = (args.GetValueOrDefault("key") ?? "").Trim().ToLowerInvariant();
+        var value = (args.GetValueOrDefault("value")
+            ?? args.GetValueOrDefault("text")
+            ?? args.GetValueOrDefault("_arg1")
+            ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(key))
+            key = (args.GetValueOrDefault("_arg0") ?? "").Trim().ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(key))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: key" });
+
+        switch (key)
+        {
+            case "branch":
+                workspace.GitBranch = value;
+                break;
+            case "pr":
+            case "pr_number":
+            case "pr-number":
+                workspace.Workspace.LinkedPrNumber = value;
+                break;
+            case "pr_status":
+            case "pr-status":
+                workspace.Workspace.LinkedPrStatus = value;
+                break;
+            case "status":
+            case "note":
+            case "latest":
+                workspace.LatestNotificationText = value;
+                workspace.Workspace.LatestNotificationText = value;
+                break;
+            default:
+                return JsonSerializer.Serialize(new { error = $"Unsupported status key: {key}" });
+        }
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            key,
+            value,
+        });
+    }
+
+    private string HandleTriggerFlash(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveSurface(workspace, args, out var surface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolvePaneId(surface, args, out var paneId, out var paneIndex, out var paneName, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        var session = surface.GetSession(paneId);
+        if (session == null)
+            return JsonSerializer.Serialize(new { error = $"Pane session not found: {paneId}" });
+
+        // BEL triggers visual bell in TerminalControl.
+        session.Write("\a");
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            surfaceId = surface.Surface.Id,
+            surfaceName = surface.Name,
+            paneId,
+            paneIndex,
+            paneName,
         });
     }
 
