@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using Cmux.Core.Config;
+using Microsoft.Win32;
 
 namespace Cmux.Views;
 
@@ -61,7 +63,7 @@ internal static class WindowAppearance
                 if (hwnd == IntPtr.Zero)
                     return;
 
-                var enabled = 1;
+                var enabled = ShouldUseDarkFrame() ? 1 : 0;
                 _ = DwmSetWindowAttribute(hwnd, DwmUseImmersiveDarkMode, ref enabled, sizeof(int));
 
                 var borderColor = DwmColorNone;
@@ -101,5 +103,28 @@ internal static class WindowAppearance
             handled = true;
         }
         return nint.Zero;
+    }
+
+    private static bool ShouldUseDarkFrame()
+    {
+        var theme = (SettingsService.Current.ThemeName ?? "Default Dark").Trim();
+        if (theme.Equals("Default Light", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (theme.Equals("System", StringComparison.OrdinalIgnoreCase))
+            return !IsSystemLightTheme();
+        return true;
+    }
+
+    private static bool IsSystemLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int value && value == 1;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

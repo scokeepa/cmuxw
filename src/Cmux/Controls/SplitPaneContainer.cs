@@ -45,6 +45,8 @@ public class SplitPaneContainer : ContentControl
         // Clear terminal cache when switching surfaces/workspaces
         // This prevents reusing terminals from a different workspace
         _terminalCache.Clear();
+        foreach (var paneId in _browserCache.Keys.ToList())
+            BrowserPaneRegistry.Unregister(paneId);
         _browserCache.Clear();
 
         _surface = e.NewValue as SurfaceViewModel;
@@ -314,6 +316,7 @@ public class SplitPaneContainer : ContentControl
 
         browser.FocusRequested += () => _surface.FocusPane(paneId);
         browser.CloseRequested += () => _surface.ClosePane(paneId);
+        BrowserPaneRegistry.Register(paneId, browser);
 
         var targetUrl = _surface.GetBrowserPaneUrl(paneId);
         if (!string.IsNullOrWhiteSpace(targetUrl) &&

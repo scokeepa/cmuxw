@@ -8,14 +8,6 @@
         ResizeMode="NoResize">
 
     <Window.Resources>
-        <!-- Force dark system brush overrides inside settings window -->
-        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FF1A1A1A" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#FF1A1A1A" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFE2E2E9" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#FFE2E2E9" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FF252547" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFE2E2E9" />
-
         <!-- Nav button style -->
         <Style x:Key="NavButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -617,7 +609,8 @@
                             <ComboBox x:Name="LanguageCombo" Grid.Column="1"
                                       Width="220"
                                       HorizontalAlignment="Left"
-                                      Style="{StaticResource SettingsCombo}">
+                                      Style="{StaticResource SettingsCombo}"
+                                      SelectionChanged="LanguageCombo_SelectionChanged">
                                 <ComboBoxItem Content="English" Tag="en" />
                                 <ComboBoxItem Content="Korean" Tag="ko" />
                                 <ComboBoxItem Content="Chinese (Simplified)" Tag="zh-CN" />
@@ -1390,11 +1383,11 @@
 
                         <Border Background="#FF1A1A1A" CornerRadius="6" Padding="20,16" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="cmux for Windows" FontSize="20" FontWeight="Bold"
+                                <TextBlock Text="cmuxw for Windows" FontSize="20" FontWeight="Bold"
                                            Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,4" />
-                                <TextBlock Text="v1.0.6" FontSize="13"
+                                <TextBlock x:Name="AboutVersionText" Text="v1.0.0" FontSize="13"
                                            Foreground="{StaticResource AccentBrush}" Margin="0,0,0,12" />
-                                <TextBlock Text="A modern terminal multiplexer designed for AI coding agents. Split panes, workspaces, command palette, and intelligent terminal management."
+                                <TextBlock Text="A modern terminal multiplexer for AI coding agents on Windows. Includes split panes, workspaces, command palette, and browser automation-ready panels."
                                            Foreground="{StaticResource ForegroundDimBrush}" FontSize="13"
                                            TextWrapping="Wrap" LineHeight="20" Margin="0,0,0,12" />
                                 <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,4,0,12" />

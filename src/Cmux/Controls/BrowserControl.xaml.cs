@@ -115,6 +115,28 @@ public partial class BrowserControl : UserControl
         ");
     }
 
+    /// <summary>Type text into an element by CSS selector.</summary>
+    public async Task TypeElement(string selector, string value)
+    {
+        var escapedSelector = selector.Replace("'", "\\'");
+        var escapedValue = value.Replace("'", "\\'");
+        await EvaluateJavaScript($@"
+            (() => {{
+                const el = document.querySelector('{escapedSelector}');
+                if (el) {{
+                    if (typeof el.focus === 'function') el.focus();
+                    if ('value' in el) {{
+                        el.value = (el.value || '') + '{escapedValue}';
+                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    }} else {{
+                        el.textContent = (el.textContent || '') + '{escapedValue}';
+                    }}
+                }}
+            }})()
+        ");
+    }
+
     /// <summary>Get the current page URL.</summary>
     public string GetCurrentUrl()
     {

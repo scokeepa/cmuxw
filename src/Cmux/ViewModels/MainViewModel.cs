@@ -453,6 +453,11 @@ public partial class MainViewModel : ObservableObject
                 "BROWSER.LIST" => HandleBrowserList(args),
                 "BROWSER.SELECT" => HandleBrowserSelect(args),
                 "BROWSER.CLOSE" => HandleBrowserClose(args),
+                "BROWSER.SNAPSHOT" => HandleBrowserSnapshot(args),
+                "BROWSER.CLICK" => HandleBrowserClick(args),
+                "BROWSER.FILL" => HandleBrowserFill(args),
+                "BROWSER.TYPE" => HandleBrowserType(args),
+                "BROWSER.EVAL" => HandleBrowserEval(args),
                 "SET.STATUS" => HandleSetStatus(args),
                 "TRIGGER.FLASH" => HandleTriggerFlash(args),
                 "STATUS" => HandleStatus(),
@@ -1124,6 +1129,116 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private string HandleBrowserSnapshot(Dictionary<string, string> args)
+    {
+        if (!TryResolveBrowserControl(args, out var workspace, out var surface, out var paneId, out var browser, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var snapshot = Cmux.Services.PlaywrightEngineAdapter.Instance.SnapshotAsync(browser).GetAwaiter().GetResult();
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = surface.Surface.Id,
+            paneId,
+            url = browser.GetCurrentUrl(),
+            snapshot,
+        });
+    }
+
+    private string HandleBrowserClick(Dictionary<string, string> args)
+    {
+        if (!TryResolveBrowserControl(args, out var workspace, out var surface, out var paneId, out var browser, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var selector = (args.GetValueOrDefault("selector") ?? args.GetValueOrDefault("_arg0") ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(selector))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: selector" });
+
+        Cmux.Services.PlaywrightEngineAdapter.Instance.ClickAsync(browser, selector).GetAwaiter().GetResult();
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = surface.Surface.Id,
+            paneId,
+            selector,
+            url = browser.GetCurrentUrl(),
+        });
+    }
+
+    private string HandleBrowserFill(Dictionary<string, string> args)
+    {
+        if (!TryResolveBrowserControl(args, out var workspace, out var surface, out var paneId, out var browser, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var selector = (args.GetValueOrDefault("selector") ?? args.GetValueOrDefault("_arg0") ?? "").Trim();
+        var value = args.GetValueOrDefault("value") ?? args.GetValueOrDefault("_arg1") ?? "";
+        if (string.IsNullOrWhiteSpace(selector))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: selector" });
+
+        Cmux.Services.PlaywrightEngineAdapter.Instance.FillAsync(browser, selector, value).GetAwaiter().GetResult();
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = surface.Surface.Id,
+            paneId,
+            selector,
+            valueLength = value.Length,
+            url = browser.GetCurrentUrl(),
+        });
+    }
+
+    private string HandleBrowserType(Dictionary<string, string> args)
+    {
+        if (!TryResolveBrowserControl(args, out var workspace, out var surface, out var paneId, out var browser, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var selector = (args.GetValueOrDefault("selector") ?? args.GetValueOrDefault("_arg0") ?? "").Trim();
+        var value = args.GetValueOrDefault("value") ?? args.GetValueOrDefault("_arg1") ?? "";
+        if (string.IsNullOrWhiteSpace(selector))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: selector" });
+
+        Cmux.Services.PlaywrightEngineAdapter.Instance.TypeAsync(browser, selector, value).GetAwaiter().GetResult();
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = surface.Surface.Id,
+            paneId,
+            selector,
+            valueLength = value.Length,
+            url = browser.GetCurrentUrl(),
+        });
+    }
+
+    private string HandleBrowserEval(Dictionary<string, string> args)
+    {
+        if (!TryResolveBrowserControl(args, out var workspace, out var surface, out var paneId, out var browser, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var script = args.GetValueOrDefault("script") ?? args.GetValueOrDefault("_arg0") ?? "";
+        if (string.IsNullOrWhiteSpace(script))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: script" });
+
+        var result = Cmux.Services.PlaywrightEngineAdapter.Instance.EvalAsync(browser, script).GetAwaiter().GetResult();
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = surface.Surface.Id,
+            paneId,
+            url = browser.GetCurrentUrl(),
+            result,
+        });
+    }
+
     private string HandleStatus()
     {
         return JsonSerializer.Serialize(new
@@ -1215,6 +1330,45 @@ public partial class MainViewModel : ObservableObject
             paneIndex,
             paneName,
         });
+    }
+
+    private bool TryResolveBrowserControl(
+        Dictionary<string, string> args,
+        out WorkspaceViewModel workspace,
+        out SurfaceViewModel surface,
+        out string paneId,
+        out Cmux.Controls.BrowserControl browser,
+        out string error)
+    {
+        workspace = null!;
+        surface = null!;
+        paneId = "";
+        browser = null!;
+        error = "";
+
+        if (!TryResolveWorkspace(args, out workspace, out error))
+            return false;
+
+        if (!TryResolveBrowserSurface(workspace, args, out surface, out error))
+            return false;
+
+        paneId = surface.GetPrimaryBrowserPaneId() ?? "";
+        if (string.IsNullOrWhiteSpace(paneId))
+        {
+            error = "Browser pane not found in selected browser surface.";
+            return false;
+        }
+
+        var resolvedBrowser = Cmux.Services.BrowserPaneRegistry.Get(paneId);
+        if (resolvedBrowser == null)
+        {
+            error = "Browser control is not ready yet. Select the browser surface in UI and retry.";
+            return false;
+        }
+
+        browser = resolvedBrowser;
+
+        return true;
     }
 
     private bool TryResolveWorkspace(Dictionary<string, string> args, out WorkspaceViewModel workspace, out string error)

@@ -156,7 +156,7 @@ public static class Program
     {
         if (args.Length == 0)
         {
-            Console.Error.WriteLine("Usage: cmux browser <open|list|select|close>");
+            Console.Error.WriteLine("Usage: cmux browser <open|list|select|close|snapshot|click|fill|type|eval>");
             return 1;
         }
 
@@ -187,12 +187,31 @@ public static class Program
             parsed["browserId"] = positionalBrowser;
         }
 
+        if (subcommand is "click" or "fill" or "type")
+        {
+            if (!parsed.ContainsKey("selector") && parsed.TryGetValue("_arg0", out var positionalSelector))
+                parsed["selector"] = positionalSelector;
+            if (subcommand is "fill" or "type")
+            {
+                if (!parsed.ContainsKey("value") && parsed.TryGetValue("_arg1", out var positionalValue))
+                    parsed["value"] = positionalValue;
+            }
+        }
+
+        if (subcommand == "eval" && !parsed.ContainsKey("script") && parsed.TryGetValue("_arg0", out var positionalScript))
+            parsed["script"] = positionalScript;
+
         return subcommand switch
         {
             "open" or "new" => await SendAndPrint("BROWSER.OPEN", parsed),
             "list" or "ls" => await SendAndPrint("BROWSER.LIST", parsed),
             "select" => await SendAndPrint("BROWSER.SELECT", parsed),
             "close" => await SendAndPrint("BROWSER.CLOSE", parsed),
+            "snapshot" => await SendAndPrint("BROWSER.SNAPSHOT", parsed),
+            "click" => await SendAndPrint("BROWSER.CLICK", parsed),
+            "fill" => await SendAndPrint("BROWSER.FILL", parsed),
+            "type" => await SendAndPrint("BROWSER.TYPE", parsed),
+            "eval" => await SendAndPrint("BROWSER.EVAL", parsed),
             _ => Error($"Unknown browser command: {subcommand}"),
         };
     }
@@ -566,6 +585,17 @@ public static class Program
                   --browser <id>      Browser/surface ID
                 close               Close a browser surface
                   --browser <id>      Browser/surface ID
+                snapshot            Capture accessibility snapshot from selected browser
+                click               Click CSS selector on selected browser
+                  --selector <css>    Element selector
+                fill                Fill CSS selector value on selected browser
+                  --selector <css>
+                  --value <text>
+                type                Type/append value into CSS selector on selected browser
+                  --selector <css>
+                  --value <text>
+                eval                Evaluate JavaScript on selected browser
+                  --script <js>
 
             cmux-compatible aliases:
               list-workspaces, new-workspace, select-workspace, close-workspace

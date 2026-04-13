@@ -1,4 +1,5 @@
 using Cmux.Core.Terminal;
+using Microsoft.Win32;
 
 namespace Cmux.Core.Config;
 
@@ -16,6 +17,7 @@ public class TerminalTheme
 public static class TerminalThemes
 {
     private const string DefaultDarkName = "Default Dark";
+    private const string DefaultLightName = "Default Light";
 
     public static TerminalTheme GetEffective(CmuxSettings settings)
     {
@@ -94,6 +96,38 @@ public static class TerminalThemes
         {
             Name = "Default Dark",
             Author = "cmux",
+            Background = new TerminalColor(0x0F, 0x0F, 0x0F),
+            Foreground = new TerminalColor(0xE0, 0xE0, 0xE0),
+            CursorColor = new TerminalColor(0x81, 0x8C, 0xF8),
+            SelectionBg = new TerminalColor(0x33, 0x33, 0x55),
+            Palette =
+            [
+                new(0x1E, 0x1E, 0x1E), new(0xEF, 0x44, 0x44), new(0x10, 0xB9, 0x81), new(0xFB, 0xBF, 0x24),
+                new(0x63, 0x66, 0xF1), new(0xA7, 0x8B, 0xFA), new(0x2D, 0xD4, 0xBF), new(0xE0, 0xE0, 0xE0),
+                new(0x6B, 0x72, 0x80), new(0xFB, 0x92, 0x3C), new(0x34, 0xD3, 0x99), new(0xFB, 0xBF, 0x24),
+                new(0x81, 0x8C, 0xF8), new(0xC4, 0xB5, 0xFD), new(0x5E, 0xEA, 0xD4), new(0xFF, 0xFF, 0xFF),
+            ],
+        },
+        ["Default Light"] = new TerminalTheme
+        {
+            Name = "Default Light",
+            Author = "cmuxw",
+            Background = new TerminalColor(0xF8, 0xFA, 0xFD),
+            Foreground = new TerminalColor(0x1F, 0x29, 0x37),
+            CursorColor = new TerminalColor(0x4F, 0x46, 0xE5),
+            SelectionBg = new TerminalColor(0xD7, 0xE3, 0xFF),
+            Palette =
+            [
+                new(0x1F, 0x29, 0x37), new(0xDC, 0x26, 0x26), new(0x16, 0xA3, 0x4A), new(0xCA, 0x8A, 0x04),
+                new(0x25, 0x63, 0xEB), new(0x93, 0x3B, 0xC8), new(0x0F, 0x76, 0x8B), new(0x4B, 0x55, 0x63),
+                new(0x6B, 0x72, 0x80), new(0xB9, 0x1C, 0x1C), new(0x15, 0x80, 0x3D), new(0xA1, 0x62, 0x07),
+                new(0x1D, 0x4E, 0xD8), new(0x7E, 0x22, 0xCE), new(0x0E, 0x74, 0x90), new(0x11, 0x18, 0x27),
+            ],
+        },
+        ["System"] = new TerminalTheme
+        {
+            Name = "System",
+            Author = "cmuxw",
             Background = new TerminalColor(0x0F, 0x0F, 0x0F),
             Foreground = new TerminalColor(0xE0, 0xE0, 0xE0),
             CursorColor = new TerminalColor(0x81, 0x8C, 0xF8),
@@ -224,6 +258,22 @@ public static class TerminalThemes
 
     public static TerminalTheme Get(string name)
     {
+        if (string.Equals(name, "System", StringComparison.OrdinalIgnoreCase))
+            return IsSystemLightTheme() ? BuiltIn[DefaultLightName] : BuiltIn[DefaultDarkName];
+
         return BuiltIn.TryGetValue(name, out var theme) ? theme : BuiltIn[DefaultDarkName];
+    }
+
+    private static bool IsSystemLightTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            return key?.GetValue("AppsUseLightTheme") is int value && value == 1;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

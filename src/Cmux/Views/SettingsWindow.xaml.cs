@@ -99,6 +99,7 @@ public partial class SettingsWindow : Window
         CaptureOnClearCheck.IsChecked = s.CaptureTranscriptsOnClear;
         TranscriptRetentionDaysBox.Text = Math.Clamp(s.TranscriptRetentionDays, 0, 3650).ToString();
         SelectLanguageCombo(s.UiLanguage);
+        var selectedLanguage = ResolveSelectedLanguage();
 
         var agent = s.Agent ?? new AgentSettings();
         AgentEnabledCheck.IsChecked = agent.Enabled;
@@ -106,7 +107,7 @@ public partial class SettingsWindow : Window
         AgentHandlerBox.Text = string.IsNullOrWhiteSpace(agent.Handler) ? "/agent" : agent.Handler;
         AgentAdditionalHandlersBox.Text = agent.AdditionalHandlers ?? "";
         AgentSystemPromptBox.Text = string.IsNullOrWhiteSpace(agent.SystemPrompt)
-            ? "You are a pragmatic engineering assistant running inside cmux. Keep responses concise and action-oriented."
+            ? GetDefaultAgentSystemPrompt(selectedLanguage)
             : agent.SystemPrompt;
 
         var activeProvider = string.IsNullOrWhiteSpace(agent.ActiveProvider) ? "openai" : agent.ActiveProvider;
@@ -165,6 +166,8 @@ public partial class SettingsWindow : Window
         _clearOpenAiKey = false;
         _clearAnthropicKey = false;
         _clearExaKey = false;
+
+        AboutVersionText.Text = $"v{typeof(SettingsWindow).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"}";
 
         UseCustomTerminalColorsCheck.IsChecked = s.UseCustomTerminalColors;
 
@@ -455,6 +458,33 @@ public partial class SettingsWindow : Window
         return "en";
     }
 
+    private static string GetDefaultAgentSystemPrompt(string language)
+    {
+        return NormalizeLanguage(language) switch
+        {
+            "ko" => "당신은 cmuxw 내부에서 실행되는 실용적인 엔지니어링 어시스턴트입니다. 답변은 간결하고 실행 중심으로 유지하세요.",
+            "zh-CN" => "你是运行在 cmuxw 内部的务实工程助手。请保持回答简洁并以行动为导向。",
+            _ => "You are a pragmatic engineering assistant running inside cmuxw. Keep responses concise and action-oriented.",
+        };
+    }
+
+    private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var newLanguage = ResolveSelectedLanguage();
+        var newDefaultPrompt = GetDefaultAgentSystemPrompt(newLanguage);
+        var currentPrompt = AgentSystemPromptBox.Text?.Trim() ?? "";
+
+        var knownDefaults = new[]
+        {
+            GetDefaultAgentSystemPrompt("en"),
+            GetDefaultAgentSystemPrompt("ko"),
+            GetDefaultAgentSystemPrompt("zh-CN"),
+        };
+
+        if (knownDefaults.Any(defaultPrompt => string.Equals(defaultPrompt, currentPrompt, StringComparison.Ordinal)))
+            AgentSystemPromptBox.Text = newDefaultPrompt;
+    }
+
     private static void ApplySecretUpdate(PasswordBox box, string secretName, ref bool clearFlag)
     {
         if (string.IsNullOrWhiteSpace(secretName))
@@ -567,13 +597,13 @@ public partial class SettingsWindow : Window
 
         if (string.IsNullOrWhiteSpace(draft.Name))
         {
-            MessageBox.Show("Custom tool name is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(L.T("Custom tool name is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(draft.CommandTemplate))
         {
-            MessageBox.Show("Custom tool command template is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(L.T("Custom tool command template is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -610,13 +640,13 @@ public partial class SettingsWindow : Window
 
         if (string.IsNullOrWhiteSpace(draft.Name))
         {
-            MessageBox.Show("MCP server name is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(L.T("MCP server name is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(draft.Command))
         {
-            MessageBox.Show("MCP server command is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(L.T("MCP server command is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
