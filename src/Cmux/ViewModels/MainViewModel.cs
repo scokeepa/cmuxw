@@ -1243,7 +1243,7 @@ public partial class MainViewModel : ObservableObject
     {
         return JsonSerializer.Serialize(new
         {
-            version = "1.0.6",
+            version = "1.0.7",
             workspaces = Workspaces.Count,
             selectedWorkspace = SelectedWorkspace?.Workspace.Id,
             unreadNotifications = TotalUnreadCount,
