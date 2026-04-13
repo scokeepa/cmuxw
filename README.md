@@ -34,6 +34,16 @@ cmux split right
 cmux status
 ```
 
+### Browser surfaces (WebView2 + Playwright)
+- **UI**: click the globe icon in the top toolbar, or use `File > New Browser`, or press `Ctrl+Shift+B`.
+- **CLI**:
+
+```powershell
+cmux browser open https://github.com/manaflow-ai/cmux
+cmux browser list
+cmux browser snapshot
+```
+
 ### Build
 ```powershell
 dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained false -o publish/cmux-win-x64
@@ -73,6 +83,16 @@ dotnet run --project src/Cmux/Cmux.csproj -c Debug
 cmux workspace list
 cmux pane list
 cmux split right
+```
+
+### 브라우저 서피스 (WebView2 + Playwright)
+- **UI**: 상단 툴바의 지구본 아이콘 클릭, `파일 > 새 브라우저`, 또는 `Ctrl+Shift+B`.
+- **CLI**:
+
+```powershell
+cmux browser open https://github.com/manaflow-ai/cmux
+cmux browser list
+cmux browser snapshot
 ```
 
 ### 협업/문서

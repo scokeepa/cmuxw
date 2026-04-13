@@ -166,31 +166,32 @@
                             <Menu.Resources>
                                 <Style TargetType="Separator" BasedOn="{StaticResource AppMenuSeparatorStyle}" />
                             </Menu.Resources>
-                            <MenuItem Header="_File" Style="{StaticResource AppMenuTopItemStyle}" ItemContainerStyle="{StaticResource AppMenuSubItemStyle}">
-                                <MenuItem Header="_New Workspace" Command="{Binding CreateNewWorkspaceCommand}" InputGestureText="Ctrl+N" />
-                                <MenuItem Header="New _Surface" Command="{Binding SelectedWorkspace.CreateNewSurfaceCommand}" InputGestureText="Ctrl+T" />
+                            <MenuItem Header="File" Style="{StaticResource AppMenuTopItemStyle}" ItemContainerStyle="{StaticResource AppMenuSubItemStyle}">
+                                <MenuItem Header="New Workspace" Command="{Binding CreateNewWorkspaceCommand}" InputGestureText="Ctrl+N" />
+                                <MenuItem Header="New Surface" Command="{Binding SelectedWorkspace.CreateNewSurfaceCommand}" InputGestureText="Ctrl+T" />
+                                <MenuItem Header="New Browser" Click="MenuOpenBrowser_Click" InputGestureText="Ctrl+Shift+B" />
                                 <Separator />
-                                <MenuItem Header="Open Command _Logs" Click="MenuOpenLogs_Click" InputGestureText="Ctrl+Shift+L" />
-                                <MenuItem Header="Open Session _Vault" Click="MenuOpenSessionVault_Click" InputGestureText="Ctrl+Shift+V" />
+                                <MenuItem Header="Open Command Logs" Click="MenuOpenLogs_Click" InputGestureText="Ctrl+Shift+L" />
+                                <MenuItem Header="Open Session Vault" Click="MenuOpenSessionVault_Click" InputGestureText="Ctrl+Shift+V" />
                                 <Separator />
-                                <MenuItem Header="_Settings" Click="MenuOpenSettings_Click" InputGestureText="Ctrl+," />
+                                <MenuItem Header="Settings" Click="MenuOpenSettings_Click" InputGestureText="Ctrl+," />
                                 <Separator />
-                                <MenuItem Header="E_xit" Click="CloseButton_Click" />
+                                <MenuItem Header="Exit" Click="CloseButton_Click" />
                             </MenuItem>
-                            <MenuItem Header="_Window" Style="{StaticResource AppMenuTopItemStyle}" ItemContainerStyle="{StaticResource AppMenuSubItemStyle}">
-                                <MenuItem Header="Split _Right" Click="ToolbarSplitRight_Click" InputGestureText="Ctrl+D" />
-                                <MenuItem Header="Split _Down" Click="ToolbarSplitDown_Click" InputGestureText="Ctrl+Shift+D" />
-                                <MenuItem Header="_Zoom Pane" Click="ToolbarZoom_Click" InputGestureText="Ctrl+Shift+Z" />
-                                <MenuItem Header="_Equalize Panes" Click="ToolbarEqualize_Click" />
+                            <MenuItem Header="Window" Style="{StaticResource AppMenuTopItemStyle}" ItemContainerStyle="{StaticResource AppMenuSubItemStyle}">
+                                <MenuItem Header="Split Right" Click="ToolbarSplitRight_Click" InputGestureText="Ctrl+D" />
+                                <MenuItem Header="Split Down" Click="ToolbarSplitDown_Click" InputGestureText="Ctrl+Shift+D" />
+                                <MenuItem Header="Zoom Pane" Click="ToolbarZoom_Click" InputGestureText="Ctrl+Shift+Z" />
+                                <MenuItem Header="Equalize Panes" Click="ToolbarEqualize_Click" />
                                 <Separator />
-                                <MenuItem Header="_Search" Click="Search_Click" InputGestureText="Ctrl+Shift+F" />
-                                <MenuItem Header="Command _Palette" Click="CommandPalette_Click" InputGestureText="Ctrl+Shift+P" />
-                                <MenuItem Header="_Snippets" Click="Snippets_Click" />
+                                <MenuItem Header="Search" Click="Search_Click" InputGestureText="Ctrl+Shift+F" />
+                                <MenuItem Header="Command Palette" Click="CommandPalette_Click" InputGestureText="Ctrl+Shift+P" />
+                                <MenuItem Header="Snippets" Click="Snippets_Click" />
                                 <Separator />
-                                <MenuItem Header="Toggle Agent _Chat" Click="MenuToggleAgentChat_Click" InputGestureText="Ctrl+Shift+A" />
-                                <MenuItem Header="Toggle _Sidebar" Command="{Binding ToggleSidebarCommand}" InputGestureText="Ctrl+B" />
+                                <MenuItem Header="Toggle Agent Chat" Click="MenuToggleAgentChat_Click" InputGestureText="Ctrl+Shift+A" />
+                                <MenuItem Header="Toggle Sidebar" Command="{Binding ToggleSidebarCommand}" InputGestureText="Ctrl+B" />
                             </MenuItem>
-                            <MenuItem Header="_Help" Style="{StaticResource AppMenuTopItemStyle}" ItemContainerStyle="{StaticResource AppMenuSubItemStyle}">
+                            <MenuItem Header="Help" Style="{StaticResource AppMenuTopItemStyle}" ItemContainerStyle="{StaticResource AppMenuSubItemStyle}">
                                 <MenuItem Header="Keyboard Shortcuts" Click="MenuOpenKeyboardShortcuts_Click" />
                                 <MenuItem Header="About" Click="MenuAbout_Click" />
                             </MenuItem>
@@ -424,6 +425,10 @@
                                     <TextBlock Text="&#xE756;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
                                     <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets" FontSize="7" Margin="2,0,0,0" />
                                 </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" ToolTip="Open Browser (Ctrl+Shift+B)"
+                                    Click="MenuOpenBrowser_Click">
+                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
                             </Button>
                             <Rectangle Width="1" Height="16" Fill="{StaticResource BorderBrush}" Margin="4,0" />
                             <Button Style="{StaticResource IconButton}" ToolTip="Layout: 2 Columns"
