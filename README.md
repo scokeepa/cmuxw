@@ -1,130 +1,82 @@
-# kwcmux
+# cmuxw
 
-A keyboard-first terminal multiplexer for Windows, inspired by tmux workflows and built with WPF + ConPTY.
+Windows-native terminal multiplexer inspired by `cmux`, built with WPF + ConPTY.
 
-## What you get
+## English
 
-- Multiple **workspaces** for project context separation
-- Surface tabs and **split panes** for parallel terminal work
-- Agent-friendly **OSC notifications** and unread tracking
-- **Command logs/history** with replay support
-- **Session Vault** for transcript search and session restore
-- Keyboard-first UX with dark theme and fast command palette
+### Why cmuxw
+- Dedicated Windows implementation (`cmux` + `windows`).
+- Keyboard-first multiplexer with workspaces, surfaces, split panes.
+- Session/log tooling for daily engineering workflows.
 
-## Screenshots
-
-### Main workspace
+### Screenshots
 ![Main workspace](assets/screenshots/1.jpg)
-
-### Snippets panel
 ![Snippets panel](assets/screenshots/2.jpg)
-
-### Command logs
 ![Command logs](assets/screenshots/3.jpg)
 
-## Quick start (Windows)
-
-### Requirements
-
-- Windows 10/11
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-
-### Run from source
-
+### Quick start
 ```powershell
-git clone https://github.com/scokeepa/kwcmux.git
-cd kwcmux
+git clone https://github.com/scokeepa/cmuxw.git
+cd cmuxw
 dotnet build Cmux.sln -c Debug
 dotnet run --project src/Cmux/Cmux.csproj -c Debug
 ```
 
-### Use included publish artifact
+### Command compatibility policy
+- App/repository/product name: **cmuxw**
+- CLI command namespace: **cmux** (kept intentionally for upstream compatibility)
 
 ```powershell
-.\publish\cmux-win-x64\cmuxw.exe
-```
-
-## First 5 minutes
-
-1. Open `cmuxw.exe`
-2. `Ctrl+N` create workspace
-3. `Ctrl+T` create surface(tab)
-4. `Ctrl+D` / `Ctrl+Shift+D` split pane
-5. `Ctrl+Shift+P` open command palette
-6. `Ctrl+Shift+L` open command logs
-7. `Ctrl+Shift+V` open Session Vault
-
-## Key shortcuts
-
-| Area | Shortcut | Action |
-|---|---|---|
-| Workspaces | `Ctrl+N` | New workspace |
-| Workspaces | `Ctrl+1..9` | Jump workspace |
-| Surfaces | `Ctrl+T` | New surface |
-| Surfaces | `Ctrl+Shift+]` / `Ctrl+Shift+[` | Next / previous surface |
-| Panes | `Ctrl+D` / `Ctrl+Shift+D` | Split right / down |
-| Panes | `Ctrl+Alt+Arrow` | Focus adjacent pane |
-| General | `Ctrl+Shift+P` | Command palette |
-| General | `Ctrl+,` | Settings |
-
-## CLI examples
-
-```powershell
-cmux notify --title "Build" --body "Done"
 cmux workspace list
 cmux workspace create --name "My Project"
 cmux pane list
-cmux pane write --paneId <target-pane-id> --text "echo hello" --submit true
-cmux pane forward --fromPaneId <source-pane-id> --toPaneId <target-pane-id> --lines 40 --submit true
 cmux split right
 cmux status
 ```
 
-## Build publish outputs
-
-### App executable
-
+### Build
 ```powershell
 dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained false -o publish/cmux-win-x64
-```
-
-### CLI executable
-
-```powershell
 dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contained true -o publish/cmux-cli
 ```
 
-## Collaboration
+### Releases
+```powershell
+.\release.ps1 -Tag v0.1.1 -AssetPath publish/cmuxw-win-x64.zip
+.\release.ps1 -Tag v0.1.1 -AssetPath publish/cmuxw-win-x64.zip -UpdateExisting
+```
 
-- Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Issue templates and PR template are enabled
-- `master` is protected and merge is PR-based
-- Upstream CLI compatibility matrix: [`docs/CLI_COMPAT.md`](docs/CLI_COMPAT.md)
+---
 
-## Release automation (templated notes)
+## 한국어
 
-Use `release.ps1` to create or update release notes in a fixed format.
-Only change the tag (and optionally asset path).
+### cmuxw 소개
+- `cmux + windows`를 결합한 Windows 전용 터미널 멀티플렉서입니다.
+- 워크스페이스/서피스/분할 패널 기반의 키보드 중심 UX를 제공합니다.
+- 명령 로그, 세션 보관함 등 운영 기능을 포함합니다.
+
+### 빠른 시작
+```powershell
+git clone https://github.com/scokeepa/cmuxw.git
+cd cmuxw
+dotnet build Cmux.sln -c Debug
+dotnet run --project src/Cmux/Cmux.csproj -c Debug
+```
+
+### 명령어 호환성 정책
+- 저장소/앱 이름은 **cmuxw**
+- CLI 명령어는 상위 호환성을 위해 **cmux**를 유지
 
 ```powershell
-# Create a new release with templated notes
-.\release.ps1 -Tag v0.1.1 -AssetPath publish/kwcmux-win-x64.zip
-
-# Update notes of an existing release
-.\release.ps1 -Tag v0.1.1 -AssetPath publish/kwcmux-win-x64.zip -UpdateExisting
+cmux workspace list
+cmux pane list
+cmux split right
 ```
 
-## Project layout
-
-```text
-src/
-  Cmux/         WPF desktop app
-  Cmux.Core/    terminal engine, models, services, IPC
-  Cmux.Cli/     automation CLI
-tests/
-  Cmux.Tests/   unit tests
-```
+### 협업/문서
+- 기여 가이드: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- CLI 호환성 문서: [`docs/CLI_COMPAT.md`](docs/CLI_COMPAT.md)
+- 이슈/PR 템플릿 활성화
 
 ## License
-
 MIT

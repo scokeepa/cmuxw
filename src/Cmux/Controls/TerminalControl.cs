@@ -12,6 +12,7 @@ using System.Windows.Media.Imaging;
 using Cmux.Core.Config;
 using Cmux.Core.Models;
 using Cmux.Core.Terminal;
+using Cmux.Services;
 
 namespace Cmux.Controls;
 
@@ -1417,7 +1418,7 @@ public class TerminalControl : FrameworkElement
         menu.Resources.Add(typeof(Separator), separatorStyle);
 
         // Copy
-        var copyItem = new MenuItem { Header = "Copy", InputGestureText = "Ctrl+C" };
+        var copyItem = new MenuItem { Header = L.T("Copy"), InputGestureText = "Ctrl+C" };
         copyItem.Icon = MakeIcon("\uE8C8");
         copyItem.IsEnabled = _selection.HasSelection;
         copyItem.Click += (_, _) =>
@@ -1432,14 +1433,14 @@ public class TerminalControl : FrameworkElement
         menu.Items.Add(copyItem);
 
         // Paste
-        var pasteItem = new MenuItem { Header = "Paste", InputGestureText = "Ctrl+V" };
+        var pasteItem = new MenuItem { Header = L.T("Paste"), InputGestureText = "Ctrl+V" };
         pasteItem.Icon = MakeIcon("\uE77F");
         pasteItem.IsEnabled = HasClipboardPasteContent();
         pasteItem.Click += (_, _) => PasteFromClipboard();
         menu.Items.Add(pasteItem);
 
         // Select All
-        var selectAllItem = new MenuItem { Header = "Select All" };
+        var selectAllItem = new MenuItem { Header = L.T("Select All") };
         selectAllItem.Icon = MakeIcon("\uE8B3");
         selectAllItem.Click += (_, _) =>
         {
@@ -1451,13 +1452,13 @@ public class TerminalControl : FrameworkElement
         menu.Items.Add(new Separator());
 
         // Split Right
-        var splitRight = new MenuItem { Header = "Split Right", InputGestureText = "Ctrl+D" };
+        var splitRight = new MenuItem { Header = L.T("Split Right"), InputGestureText = "Ctrl+D" };
         splitRight.Icon = MakeIcon("\uE745");
         splitRight.Click += (_, _) => SplitRequested?.Invoke(SplitDirection.Vertical);
         menu.Items.Add(splitRight);
 
         // Split Down
-        var splitDown = new MenuItem { Header = "Split Down", InputGestureText = "Ctrl+Shift+D" };
+        var splitDown = new MenuItem { Header = L.T("Split Down"), InputGestureText = "Ctrl+Shift+D" };
         splitDown.Icon = MakeIcon("\uE74B");
         splitDown.Click += (_, _) => SplitRequested?.Invoke(SplitDirection.Horizontal);
         menu.Items.Add(splitDown);
@@ -1468,7 +1469,7 @@ public class TerminalControl : FrameworkElement
         var isZoomed = IsSurfaceZoomed;
         var zoom = new MenuItem
         {
-            Header = isZoomed ? "Unzoom Pane" : "Zoom Pane",
+            Header = isZoomed ? L.T("Unzoom Pane") : L.T("Zoom Pane"),
             InputGestureText = "Ctrl+Shift+Z",
             IsCheckable = true,
             IsChecked = isZoomed,
@@ -1478,7 +1479,7 @@ public class TerminalControl : FrameworkElement
         menu.Items.Add(zoom);
 
         // Close Pane
-        var closePane = new MenuItem { Header = "Close Pane" };
+        var closePane = new MenuItem { Header = L.T("Close Pane") };
         closePane.Icon = MakeIcon("\uE711");
         closePane.Foreground = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
         closePane.Click += (_, _) => ClosePaneRequested?.Invoke();
@@ -1487,7 +1488,7 @@ public class TerminalControl : FrameworkElement
         menu.Items.Add(new Separator());
 
         // Clear Terminal
-        var clear = new MenuItem { Header = "Clear Terminal" };
+        var clear = new MenuItem { Header = L.T("Clear Terminal") };
         clear.Icon = MakeIcon("\uE894");
         clear.Click += (_, _) =>
         {
@@ -1497,7 +1498,7 @@ public class TerminalControl : FrameworkElement
         menu.Items.Add(clear);
 
         // Search
-        var search = new MenuItem { Header = "Search", InputGestureText = "Ctrl+Shift+F" };
+        var search = new MenuItem { Header = L.T("Search"), InputGestureText = "Ctrl+Shift+F" };
         search.Icon = MakeIcon("\uE721");
         search.Click += (_, _) => SearchRequested?.Invoke();
         menu.Items.Add(search);

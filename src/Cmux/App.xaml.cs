@@ -4,6 +4,7 @@ using Cmux.Core.Config;
 using Cmux.Core.IPC;
 using Cmux.Core.Services;
 using Cmux.Services;
+using System.Windows.Controls;
 
 namespace Cmux;
 
@@ -24,11 +25,16 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        LocalizationManager.Instance.SetLanguage(SettingsService.Current.UiLanguage);
+        LocalizationManager.Instance.LanguageChanged += ReapplyLocalizationToOpenWindows;
+        EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnVisualLoaded));
+        EventManager.RegisterClassHandler(typeof(UserControl), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnVisualLoaded));
+
         // Add global exception handlers to diagnose crashes
         DispatcherUnhandledException += (s, args) =>
         {
             System.Diagnostics.Debug.WriteLine($"[CRASH] DispatcherUnhandledException: {args.Exception}");
-            System.Windows.MessageBox.Show($"Unexpected error: {args.Exception.Message}\n\n{args.Exception.StackTrace}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show($"{L.T("Unexpected error")}: {args.Exception.Message}\n\n{args.Exception.StackTrace}", L.T("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
 
@@ -36,7 +42,7 @@ public partial class App : Application
         {
             var ex = args.ExceptionObject as Exception;
             System.Diagnostics.Debug.WriteLine($"[CRASH] UnhandledException: {ex}");
-            System.Windows.MessageBox.Show($"Fatal error: {ex?.Message}\n\n{ex?.StackTrace}", "Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Windows.MessageBox.Show($"{L.T("Fatal Error")}: {ex?.Message}\n\n{ex?.StackTrace}", L.T("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
         };
 
         // Start the named pipe server for CLI communication
@@ -72,7 +78,7 @@ public partial class App : Application
             var mainWindow = Current.MainWindow;
             if (mainWindow != null && !mainWindow.IsActive)
             {
-                var workspaceName = "Terminal"; // Will be enriched by MainViewModel
+                var workspaceName = L.T("Terminal"); // Will be enriched by MainViewModel
                 Services.ToastNotificationHelper.ShowToast(notification, workspaceName);
             }
         };
@@ -87,4 +93,16 @@ public partial class App : Application
     }
 
     internal static void DaemonLog(string message) => DaemonClient.LogDaemon(message);
+
+    private static void OnVisualLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is DependencyObject visual)
+            LocalizationManager.Instance.ApplyToVisualTree(visual);
+    }
+
+    private static void ReapplyLocalizationToOpenWindows()
+    {
+        foreach (Window window in Current.Windows)
+            LocalizationManager.Instance.ApplyToVisualTree(window);
+    }
 }

@@ -6,6 +6,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using Cmux.Core.Config;
 using Cmux.Core.Services;
+using Cmux.Services;
 
 namespace Cmux.Views;
 
@@ -50,7 +51,7 @@ public partial class SettingsWindow : Window
 
         // Detect system theme
         var isLight = IsSystemLightTheme();
-        SystemThemeText.Text = isLight ? "Light" : "Dark";
+        SystemThemeText.Text = isLight ? L.T("Light") : L.T("Dark");
     }
 
     private void LoadSettings()
@@ -97,6 +98,7 @@ public partial class SettingsWindow : Window
         CaptureOnCloseCheck.IsChecked = s.CaptureTranscriptsOnClose;
         CaptureOnClearCheck.IsChecked = s.CaptureTranscriptsOnClear;
         TranscriptRetentionDaysBox.Text = Math.Clamp(s.TranscriptRetentionDays, 0, 3650).ToString();
+        SelectLanguageCombo(s.UiLanguage);
 
         var agent = s.Agent ?? new AgentSettings();
         AgentEnabledCheck.IsChecked = agent.Enabled;
@@ -208,6 +210,8 @@ public partial class SettingsWindow : Window
         s.CaptureTranscriptsOnClear = CaptureOnClearCheck.IsChecked == true;
         if (int.TryParse(TranscriptRetentionDaysBox.Text, out int transcriptRetention))
             s.TranscriptRetentionDays = Math.Clamp(transcriptRetention, 0, 3650);
+        s.UiLanguage = ResolveSelectedLanguage();
+        LocalizationManager.Instance.SetLanguage(s.UiLanguage);
 
         s.UseCustomTerminalColors = UseCustomTerminalColorsCheck.IsChecked == true;
         s.CustomTerminalBackground = NormalizeHexColor(TerminalBackgroundHexBox.Text) ?? string.Empty;
@@ -255,13 +259,13 @@ public partial class SettingsWindow : Window
         agent.EnableTargetSubmitProfiles = AgentEnableSubmitProfilesCheck.IsChecked == true;
         if (!TryParseSubmitProfilesJson(AgentSubmitProfilesJsonBox.Text, out var submitProfiles, out var submitProfilesParseError))
         {
-            MessageBox.Show(submitProfilesParseError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(submitProfilesParseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
         if (!ValidateSubmitProfiles(submitProfiles, out var submitProfilesValidationError))
         {
-            MessageBox.Show(submitProfilesValidationError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(submitProfilesValidationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return false;
         }
 
@@ -292,13 +296,13 @@ public partial class SettingsWindow : Window
         {
             if (!TryParseCustomToolsJson(CustomToolsJsonBox.Text, out var parsedTools, out var parseError))
             {
-                MessageBox.Show(parseError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(parseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
             if (!ValidateCustomTools(parsedTools, out var validationError))
             {
-                MessageBox.Show(validationError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -311,7 +315,7 @@ public partial class SettingsWindow : Window
         {
             if (!ValidateCustomTools(_customToolsDraft, out var validationError))
             {
-                MessageBox.Show(validationError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -325,13 +329,13 @@ public partial class SettingsWindow : Window
         {
             if (!TryParseMcpServersJson(McpServersJsonBox.Text, out var parsedServers, out var parseError))
             {
-                MessageBox.Show(parseError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(parseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
             if (!ValidateMcpServers(parsedServers, out var validationError))
             {
-                MessageBox.Show(validationError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -344,7 +348,7 @@ public partial class SettingsWindow : Window
         {
             if (!ValidateMcpServers(_mcpServersDraft, out var validationError))
             {
-                MessageBox.Show(validationError, "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
@@ -418,6 +422,37 @@ public partial class SettingsWindow : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void SelectLanguageCombo(string? language)
+    {
+        var normalized = NormalizeLanguage(language);
+        foreach (var item in LanguageCombo.Items.OfType<ComboBoxItem>())
+        {
+            if (string.Equals(item.Tag?.ToString(), normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                LanguageCombo.SelectedItem = item;
+                return;
+            }
+        }
+
+        LanguageCombo.SelectedIndex = 0;
+    }
+
+    private string ResolveSelectedLanguage()
+    {
+        var selected = (LanguageCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        return NormalizeLanguage(selected);
+    }
+
+    private static string NormalizeLanguage(string? language)
+    {
+        var raw = (language ?? "").Trim();
+        if (raw.StartsWith("ko", StringComparison.OrdinalIgnoreCase))
+            return "ko";
+        if (raw.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+            return "zh-CN";
+        return "en";
     }
 
     private static void ApplySecretUpdate(PasswordBox box, string secretName, ref bool clearFlag)
@@ -532,13 +567,13 @@ public partial class SettingsWindow : Window
 
         if (string.IsNullOrWhiteSpace(draft.Name))
         {
-            MessageBox.Show("Custom tool name is required.", "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Custom tool name is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(draft.CommandTemplate))
         {
-            MessageBox.Show("Custom tool command template is required.", "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Custom tool command template is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -575,13 +610,13 @@ public partial class SettingsWindow : Window
 
         if (string.IsNullOrWhiteSpace(draft.Name))
         {
-            MessageBox.Show("MCP server name is required.", "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("MCP server name is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(draft.Command))
         {
-            MessageBox.Show("MCP server command is required.", "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("MCP server command is required.", L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

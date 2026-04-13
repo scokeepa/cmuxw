@@ -6,13 +6,13 @@
 
 ## Installation (Windows)
 1. Download `{{ASSET_NAME}}`
-2. Extract to a folder, for example `C:\tools\kwcmux`
+2. Extract to a folder, for example `C:\tools\cmuxw`
 3. Run `cmuxw.exe`
 
 ```powershell
 # Example
-Expand-Archive -Path .\{{ASSET_NAME}} -DestinationPath C:\tools\kwcmux -Force
-C:\tools\kwcmux\cmux-win-x64\cmuxw.exe
+Expand-Archive -Path .\{{ASSET_NAME}} -DestinationPath C:\tools\cmuxw -Force
+C:\tools\cmuxw\cmux-win-x64\cmuxw.exe
 ```
 
 ## Checksum verification (SHA256)

@@ -1,9 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Cmux.Core.Models;
 using Cmux.Core.Config;
 using Cmux.Core.Terminal;
+using Cmux.Services;
 using Cmux.ViewModels;
 using Cmux.Views;
 
@@ -172,7 +174,7 @@ public class SplitPaneContainer : ContentControl
             terminal.AttachSession(session);
 
         // Get pane title (custom name takes precedence over shell title)
-        var title = _surface?.GetPaneTitle(paneId, session?.Title) ?? "Terminal";
+        var title = _surface?.GetPaneTitle(paneId, session?.Title) ?? L.T("Terminal");
 
         // Create panel with header
         var panel = new DockPanel { LastChildFill = true };
@@ -186,13 +188,13 @@ public class SplitPaneContainer : ContentControl
         };
 
         var headerMenu = new ContextMenu();
-        var renamePane = new MenuItem { Header = "Rename Pane" };
+        var renamePane = new MenuItem { Header = L.T("Rename Pane") };
         renamePane.Click += (_, _) =>
         {
-            var currentName = _surface?.GetPaneTitle(paneId, session?.Title) ?? "Terminal";
+            var currentName = _surface?.GetPaneTitle(paneId, session?.Title) ?? L.T("Terminal");
             var prompt = new TextPromptWindow(
-                title: "Rename Pane",
-                message: "Set a custom name for this pane.",
+                title: L.T("Rename Pane"),
+                message: L.T("Set a custom name for this pane."),
                 defaultValue: currentName)
             {
                 Owner = Window.GetWindow(this),
@@ -203,7 +205,7 @@ public class SplitPaneContainer : ContentControl
         };
         headerMenu.Items.Add(renamePane);
 
-        var resetPaneName = new MenuItem { Header = "Reset Pane Name" };
+        var resetPaneName = new MenuItem { Header = L.T("Reset Pane Name") };
         resetPaneName.Click += (_, _) => _surface?.SetPaneCustomName(paneId, string.Empty);
         headerMenu.Items.Add(resetPaneName);
 
@@ -252,7 +254,7 @@ public class SplitPaneContainer : ContentControl
             Foreground = GetThemeBrush("ForegroundDimBrush"),
             BorderThickness = new Thickness(0),
             Cursor = System.Windows.Input.Cursors.Hand,
-            ToolTip = "Close pane",
+            ToolTip = L.T("Close pane"),
         };
         closeButton.Click += (s, e) => _surface?.ClosePane(paneId);
         Grid.SetColumn(closeButton, 2);
@@ -375,5 +377,37 @@ public class SplitPaneContainer : ContentControl
         {
             terminal.UpdateSettings(theme, fontFamily, fontSize);
         }
+    }
+
+    /// <summary>
+    /// Moves keyboard focus to the currently focused pane terminal.
+    /// Returns true if focus was moved.
+    /// </summary>
+    public bool FocusActivePane()
+    {
+        if (_surface == null)
+            return false;
+
+        var paneId = _surface.FocusedPaneId;
+        if (string.IsNullOrWhiteSpace(paneId))
+        {
+            paneId = _surface.RootNode.GetLeaves()
+                .Select(l => l.PaneId)
+                .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id));
+        }
+
+        if (string.IsNullOrWhiteSpace(paneId))
+            return false;
+
+        if (!_terminalCache.TryGetValue(paneId, out var terminal))
+        {
+            Rebuild();
+            if (!_terminalCache.TryGetValue(paneId, out terminal))
+                return false;
+        }
+
+        terminal.Focus();
+        Keyboard.Focus(terminal);
+        return true;
     }
 }

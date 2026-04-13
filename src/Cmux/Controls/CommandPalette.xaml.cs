@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Cmux.Services;
 
 namespace Cmux.Controls;
 
@@ -15,7 +16,7 @@ public class PaletteItem
     public string? Description { get; set; }
     public string? Shortcut { get; set; }
     public string Icon { get; set; } = "\uE756";
-    public string Category { get; set; } = "Commands";
+    public string Category { get; set; } = L.T("Commands");
     public Action? Execute { get; set; }
 }
 
