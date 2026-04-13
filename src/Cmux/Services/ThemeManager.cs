@@ -51,6 +51,13 @@ internal static class ThemeManager
             return;
 
         var color = (Color)ColorConverter.ConvertFromString(hex);
+        if (brush.IsFrozen)
+        {
+            // Some merged resources are frozen Freezables, so mutate by replacement.
+            Application.Current.Resources[key] = new SolidColorBrush(color);
+            return;
+        }
+
         brush.Color = color;
     }
 }
