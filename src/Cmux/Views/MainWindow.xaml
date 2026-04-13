@@ -356,29 +356,46 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Command="{Binding ToggleNotificationPanelCommand}"
-                                        Style="{StaticResource CmuxButton}"
-                                        HorizontalAlignment="Stretch" Margin="0,1">
-                                    <Grid>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                                       Margin="0,0,8,0" Opacity="0.6" />
-                                            <TextBlock Text="Notifications" FontSize="12" />
-                                        </StackPanel>
-                                        <Border CornerRadius="10"
-                                                Padding="6,2" HorizontalAlignment="Right"
-                                                Visibility="{Binding TotalUnreadCount, Converter={StaticResource IntToVisibility}}">
-                                            <Border.Background>
-                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                    <GradientStop Color="#FF6366F1" Offset="0" />
-                                                    <GradientStop Color="#FFA78BFA" Offset="1" />
-                                                </LinearGradientBrush>
-                                            </Border.Background>
-                                            <TextBlock Text="{Binding TotalUnreadCount}" FontSize="10"
-                                                       Foreground="White" FontWeight="SemiBold" />
-                                        </Border>
-                                    </Grid>
-                                </Button>
+                                <Grid Margin="0,1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="ThemeToggleButton"
+                                            Grid.Column="0"
+                                            Style="{StaticResource IconButton}"
+                                            Width="30"
+                                            Height="30"
+                                            Margin="0,0,6,0"
+                                            ToolTip="Toggle Theme"
+                                            Click="ThemeToggleButton_Click">
+                                        <TextBlock x:Name="ThemeToggleIcon" Text="&#xE706;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                    </Button>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding ToggleNotificationPanelCommand}"
+                                            Style="{StaticResource CmuxButton}"
+                                            HorizontalAlignment="Stretch">
+                                        <Grid>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                           Margin="0,0,8,0" Opacity="0.6" />
+                                                <TextBlock Text="Notifications" FontSize="12" />
+                                            </StackPanel>
+                                            <Border CornerRadius="10"
+                                                    Padding="6,2" HorizontalAlignment="Right"
+                                                    Visibility="{Binding TotalUnreadCount, Converter={StaticResource IntToVisibility}}">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Color="#FF6366F1" Offset="0" />
+                                                        <GradientStop Color="#FFA78BFA" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <TextBlock Text="{Binding TotalUnreadCount}" FontSize="10"
+                                                           Foreground="White" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
                             </StackPanel>
                         </Border>
                     </Grid>

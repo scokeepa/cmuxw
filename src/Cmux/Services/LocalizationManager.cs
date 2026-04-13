@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using System.Text.RegularExpressions;
 
 namespace Cmux.Services;
@@ -42,6 +43,9 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Split Down"] = "아래 분할",
             ["Toggle Sidebar"] = "사이드바 토글",
             ["Notifications"] = "알림",
+            ["Toggle Theme"] = "테마 전환",
+            ["Switch to Dark"] = "다크로 전환",
+            ["Switch to Light"] = "라이트로 전환",
             ["Test Notification"] = "테스트 알림",
             ["Open Command Logs"] = "명령 로그 열기",
             ["Open Session Vault"] = "세션 보관함 열기",
@@ -404,6 +408,9 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Split Down"] = "向下分割",
             ["Toggle Sidebar"] = "切换侧边栏",
             ["Notifications"] = "通知",
+            ["Toggle Theme"] = "切换主题",
+            ["Switch to Dark"] = "切换到深色",
+            ["Switch to Light"] = "切换到浅色",
             ["Test Notification"] = "测试通知",
             ["Open Command Logs"] = "打开命令日志",
             ["Open Session Vault"] = "打开会话库",
@@ -784,10 +791,30 @@ public sealed class LocalizationManager : INotifyPropertyChanged
 
     public void ApplyToVisualTree(DependencyObject root)
     {
-        LocalizeElement(root);
-        var count = VisualTreeHelper.GetChildrenCount(root);
-        for (var i = 0; i < count; i++)
-            ApplyToVisualTree(VisualTreeHelper.GetChild(root, i));
+        ApplyRecursive(root, new HashSet<DependencyObject>());
+    }
+
+    private void ApplyRecursive(DependencyObject node, HashSet<DependencyObject> visited)
+    {
+        if (!visited.Add(node))
+            return;
+
+        LocalizeElement(node);
+
+        // 1) Visual tree (rendered elements)
+        if (node is Visual || node is Visual3D)
+        {
+            var visualChildCount = VisualTreeHelper.GetChildrenCount(node);
+            for (var i = 0; i < visualChildCount; i++)
+                ApplyRecursive(VisualTreeHelper.GetChild(node, i), visited);
+        }
+
+        // 2) Logical tree (menu items, popup content, item containers)
+        foreach (var child in LogicalTreeHelper.GetChildren(node))
+        {
+            if (child is DependencyObject dep)
+                ApplyRecursive(dep, visited);
+        }
     }
 
     private void LocalizeElement(DependencyObject d)
