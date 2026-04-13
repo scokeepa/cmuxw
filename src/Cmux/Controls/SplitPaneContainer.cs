@@ -19,6 +19,7 @@ public class SplitPaneContainer : ContentControl
 {
     private SurfaceViewModel? _surface;
     private readonly Dictionary<string, TerminalControl> _terminalCache = [];
+    private readonly Dictionary<string, BrowserControl> _browserCache = [];
 
     public event Action? SearchRequested;
 
@@ -44,6 +45,7 @@ public class SplitPaneContainer : ContentControl
         // Clear terminal cache when switching surfaces/workspaces
         // This prevents reusing terminals from a different workspace
         _terminalCache.Clear();
+        _browserCache.Clear();
 
         _surface = e.NewValue as SurfaceViewModel;
 
@@ -78,6 +80,12 @@ public class SplitPaneContainer : ContentControl
     private void UpdateFocusState()
     {
         if (_surface == null) return;
+
+        if (_browserCache.Count > 0)
+        {
+            Rebuild();
+            return;
+        }
 
         // In zoom mode, focus change may require rebuild if the zoomed pane changed
         if (_surface.IsZoomed)
@@ -126,6 +134,11 @@ public class SplitPaneContainer : ContentControl
             return new Border { Background = Brushes.Transparent };
 
         var paneId = node.PaneId; // Capture for closures
+
+        if (_surface?.IsBrowserPane(paneId) == true)
+        {
+            return BuildBrowserLeaf(paneId);
+        }
 
         // Reuse cached terminal if available (preserves session and scroll position)
         if (!_terminalCache.TryGetValue(paneId, out var terminal))
@@ -278,6 +291,112 @@ public class SplitPaneContainer : ContentControl
         };
     }
 
+    private UIElement BuildBrowserLeaf(string paneId)
+    {
+        if (_surface == null)
+            return new Border { Background = Brushes.Transparent };
+
+        if (!_browserCache.TryGetValue(paneId, out var browser))
+        {
+            browser = new BrowserControl();
+            _browserCache[paneId] = browser;
+        }
+        else
+        {
+            var oldParent = VisualTreeHelper.GetParent(browser) as FrameworkElement;
+            if (oldParent is DockPanel dockPanel)
+                dockPanel.Children.Remove(browser);
+            else if (oldParent is Border border)
+                border.Child = null;
+
+            browser.ClearEventHandlers();
+        }
+
+        browser.FocusRequested += () => _surface.FocusPane(paneId);
+        browser.CloseRequested += () => _surface.ClosePane(paneId);
+
+        var targetUrl = _surface.GetBrowserPaneUrl(paneId);
+        if (!string.IsNullOrWhiteSpace(targetUrl) &&
+            !string.Equals(browser.GetCurrentUrl(), targetUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            browser.Navigate(targetUrl);
+        }
+
+        var title = _surface.GetPaneTitle(paneId, "Browser");
+        if (string.Equals(title, L.T("Terminal"), StringComparison.Ordinal))
+            title = "Browser";
+
+        var panel = new DockPanel { LastChildFill = true };
+        var header = new Border
+        {
+            Background = GetThemeBrush("SidebarItemHoverBrush"),
+            Height = 22,
+            Padding = new Thickness(8, 2, 8, 2),
+        };
+
+        DockPanel.SetDock(header, Dock.Top);
+        var headerGrid = new Grid();
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+
+        var focusIndicator = new Border
+        {
+            Width = 3,
+            Height = 12,
+            CornerRadius = new CornerRadius(1.5),
+            Margin = new Thickness(0, 0, 6, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = paneId == _surface.FocusedPaneId
+                ? GetThemeBrush("AccentBrush")
+                : GetThemeBrush("DividerBrush"),
+        };
+        Grid.SetColumn(focusIndicator, 0);
+
+        var titleText = new TextBlock
+        {
+            Text = title,
+            FontSize = 11,
+            Foreground = GetThemeBrush("ForegroundBrush"),
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        };
+        Grid.SetColumn(titleText, 1);
+
+        var closeButton = new Button
+        {
+            Content = "\u2715",
+            FontSize = 10,
+            Width = 18,
+            Height = 18,
+            Background = Brushes.Transparent,
+            Foreground = GetThemeBrush("ForegroundDimBrush"),
+            BorderThickness = new Thickness(0),
+            Cursor = Cursors.Hand,
+            ToolTip = L.T("Close pane"),
+        };
+        closeButton.Click += (_, _) => _surface.ClosePane(paneId);
+        Grid.SetColumn(closeButton, 2);
+
+        headerGrid.Children.Add(focusIndicator);
+        headerGrid.Children.Add(titleText);
+        headerGrid.Children.Add(closeButton);
+        header.Child = headerGrid;
+
+        panel.Children.Add(header);
+        panel.Children.Add(browser);
+
+        var focusedAccent = GetThemeColor("AccentColor");
+        return new Border
+        {
+            Child = panel,
+            BorderBrush = paneId == _surface.FocusedPaneId
+                ? new SolidColorBrush(Color.FromArgb(153, focusedAccent.R, focusedAccent.G, focusedAccent.B))
+                : GetThemeBrush("BorderBrush"),
+            BorderThickness = new Thickness(1),
+        };
+    }
+
 
     private UIElement BuildSplit(SplitNode node)
     {
@@ -401,9 +520,25 @@ public class SplitPaneContainer : ContentControl
 
         if (!_terminalCache.TryGetValue(paneId, out var terminal))
         {
+            if (_browserCache.TryGetValue(paneId, out var browser))
+            {
+                browser.Focus();
+                Keyboard.Focus(browser);
+                return true;
+            }
+
             Rebuild();
             if (!_terminalCache.TryGetValue(paneId, out terminal))
+            {
+                if (_browserCache.TryGetValue(paneId, out var rebuiltBrowser))
+                {
+                    rebuiltBrowser.Focus();
+                    Keyboard.Focus(rebuiltBrowser);
+                    return true;
+                }
+
                 return false;
+            }
         }
 
         terminal.Focus();

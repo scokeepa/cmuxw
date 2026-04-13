@@ -60,6 +60,9 @@ public class SurfaceState
 
     [JsonPropertyName("paneSnapshots")]
     public Dictionary<string, PaneStateSnapshot> PaneSnapshots { get; set; } = [];
+
+    [JsonPropertyName("browserPaneUrls")]
+    public Dictionary<string, string> BrowserPaneUrls { get; set; } = [];
 }
 
 public class SplitNodeState

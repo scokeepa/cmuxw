@@ -64,6 +64,8 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         }
     }
 
+    public bool IsBrowserSurface => Surface.BrowserPaneUrls.Count > 0;
+
     public SurfaceViewModel(Surface surface, string workspaceId, NotificationService notificationService)
     {
         Surface = surface;
@@ -87,6 +89,9 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         {
             if (leaf.PaneId != null)
             {
+                if (Surface.BrowserPaneUrls.ContainsKey(leaf.PaneId))
+                    continue;
+
                 Surface.PaneSnapshots.TryGetValue(leaf.PaneId, out var snapshot);
                 if (snapshot?.CommandHistory is { Count: > 0 })
                 {
@@ -181,6 +186,42 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     public TerminalSession? GetSession(string paneId)
     {
         return _sessions.GetValueOrDefault(paneId);
+    }
+
+    public bool IsBrowserPane(string paneId)
+    {
+        return Surface.BrowserPaneUrls.ContainsKey(paneId);
+    }
+
+    public string? GetBrowserPaneUrl(string paneId)
+    {
+        return Surface.BrowserPaneUrls.GetValueOrDefault(paneId);
+    }
+
+    public string? GetPrimaryBrowserUrl()
+    {
+        return Surface.BrowserPaneUrls.Values.FirstOrDefault();
+    }
+
+    public void SetBrowserPaneUrl(string paneId, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return;
+
+        if (_sessions.TryGetValue(paneId, out var existingSession))
+        {
+            if (_daemonPanes.Remove(paneId))
+                _ = App.DaemonClient.CloseSessionAsync(paneId);
+
+            existingSession.Dispose();
+            _sessions.Remove(paneId);
+            _paneCommandHistory.Remove(paneId);
+            _paneShells.Remove(paneId);
+        }
+
+        Surface.PaneSnapshots.Remove(paneId);
+        Surface.BrowserPaneUrls[paneId] = url.Trim();
+        OnPropertyChanged(nameof(IsBrowserSurface));
     }
 
     public string GetPaneTitle(string paneId, string? fallbackTitle)
@@ -673,6 +714,10 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     {
         if (paneId == null) return;
 
+        // Keep at least one pane in a surface.
+        var leaves = RootNode.GetLeaves().ToList();
+        if (leaves.Count <= 1) return;
+
         CapturePaneTranscript(paneId, "pane-close");
 
         // Get adjacent pane before removal
@@ -690,12 +735,10 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 
         Surface.PaneCustomNames.Remove(paneId);
         Surface.PaneSnapshots.Remove(paneId);
+        Surface.BrowserPaneUrls.Remove(paneId);
         _paneCommandHistory.Remove(paneId);
         _paneShells.Remove(paneId);
-
-        // If this is the only pane, don't remove it
-        var leaves = RootNode.GetLeaves().ToList();
-        if (leaves.Count <= 1) return;
+        OnPropertyChanged(nameof(IsBrowserSurface));
 
         RootNode.Remove(paneId);
 

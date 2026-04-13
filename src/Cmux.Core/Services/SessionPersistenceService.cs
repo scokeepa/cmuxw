@@ -94,6 +94,7 @@ public class SessionPersistenceService
                     Name = surface.Name,
                     FocusedPaneId = surface.FocusedPaneId,
                     PaneCustomNames = new Dictionary<string, string>(surface.PaneCustomNames),
+                    BrowserPaneUrls = new Dictionary<string, string>(surface.BrowserPaneUrls),
                     PaneSnapshots = surface.PaneSnapshots.ToDictionary(
                         kvp => kvp.Key,
                         kvp => ClonePaneSnapshot(kvp.Value)),

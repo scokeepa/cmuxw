@@ -119,6 +119,12 @@ public partial class MainViewModel : ObservableObject
                     clonedSurface.PaneCustomNames[newPaneId] = customName;
             }
 
+            foreach (var (oldPaneId, browserUrl) in sourceSurface.BrowserPaneUrls)
+            {
+                if (paneIdMap.TryGetValue(oldPaneId, out var newPaneId))
+                    clonedSurface.BrowserPaneUrls[newPaneId] = browserUrl;
+            }
+
             foreach (var (oldPaneId, snapshot) in sourceSurface.PaneSnapshots)
             {
                 if (!paneIdMap.TryGetValue(oldPaneId, out var newPaneId))
@@ -323,6 +329,7 @@ public partial class MainViewModel : ObservableObject
                     Name = surfState.Name,
                     FocusedPaneId = surfState.FocusedPaneId,
                     PaneCustomNames = new Dictionary<string, string>(surfState.PaneCustomNames),
+                    BrowserPaneUrls = new Dictionary<string, string>(surfState.BrowserPaneUrls),
                     PaneSnapshots = surfState.PaneSnapshots.ToDictionary(
                         kvp => kvp.Key,
                         kvp => new PaneStateSnapshot
@@ -442,6 +449,10 @@ public partial class MainViewModel : ObservableObject
                 "PANE.WRITE" => HandlePaneWrite(args),
                 "PANE.READ" => HandlePaneRead(args),
                 "PANE.FORWARD" => HandlePaneForward(args),
+                "BROWSER.OPEN" => HandleBrowserOpen(args),
+                "BROWSER.LIST" => HandleBrowserList(args),
+                "BROWSER.SELECT" => HandleBrowserSelect(args),
+                "BROWSER.CLOSE" => HandleBrowserClose(args),
                 "SET.STATUS" => HandleSetStatus(args),
                 "TRIGGER.FLASH" => HandleTriggerFlash(args),
                 "STATUS" => HandleStatus(),
@@ -1012,6 +1023,107 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private string HandleBrowserOpen(Dictionary<string, string> args)
+    {
+        var url = (args.GetValueOrDefault("url") ?? args.GetValueOrDefault("_arg0") ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(url))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: url" });
+
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var surfaceName = args.GetValueOrDefault("name");
+        var browserSurface = workspace.CreateBrowserSurface(url, surfaceName);
+        SelectedWorkspace = workspace;
+        workspace.SelectedSurface = browserSurface;
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = browserSurface.Surface.Id,
+            surfaceId = browserSurface.Surface.Id,
+            surfaceName = browserSurface.Name,
+            url,
+        });
+    }
+
+    private string HandleBrowserList(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var browsers = workspace.Surfaces
+            .Where(s => s.IsBrowserSurface)
+            .Select((surface, idx) => new
+            {
+                index = idx + 1,
+                browserId = surface.Surface.Id,
+                surfaceId = surface.Surface.Id,
+                name = surface.Name,
+                url = surface.GetPrimaryBrowserUrl() ?? "",
+                selected = workspace.SelectedSurface == surface,
+            })
+            .ToList();
+
+        return JsonSerializer.Serialize(new
+        {
+            workspace = new
+            {
+                id = workspace.Workspace.Id,
+                name = workspace.Name,
+            },
+            browsers,
+        });
+    }
+
+    private string HandleBrowserSelect(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveBrowserSurface(workspace, args, out var browserSurface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        SelectedWorkspace = workspace;
+        workspace.SelectedSurface = browserSurface;
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = browserSurface.Surface.Id,
+            surfaceId = browserSurface.Surface.Id,
+            surfaceName = browserSurface.Name,
+            url = browserSurface.GetPrimaryBrowserUrl() ?? "",
+        });
+    }
+
+    private string HandleBrowserClose(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveBrowserSurface(workspace, args, out var browserSurface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (workspace.Surfaces.Count <= 1)
+            return JsonSerializer.Serialize(new { error = "Cannot close the last surface." });
+
+        var browserId = browserSurface.Surface.Id;
+        workspace.CloseSurface(browserSurface);
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId,
+        });
+    }
+
     private string HandleStatus()
     {
         return JsonSerializer.Serialize(new
@@ -1252,6 +1364,71 @@ public partial class MainViewModel : ObservableObject
             return true;
         }
 
+        return true;
+    }
+
+    private static bool TryResolveBrowserSurface(
+        WorkspaceViewModel workspace,
+        Dictionary<string, string> args,
+        out SurfaceViewModel surface,
+        out string error)
+    {
+        surface = null!;
+        error = "";
+
+        var browsers = workspace.Surfaces.Where(s => s.IsBrowserSurface).ToList();
+        if (browsers.Count == 0)
+        {
+            error = "No browser surface available in workspace.";
+            return false;
+        }
+
+        var browserRef = args.GetValueOrDefault("browser")
+            ?? args.GetValueOrDefault("browserId")
+            ?? args.GetValueOrDefault("surface")
+            ?? args.GetValueOrDefault("surfaceId");
+
+        if (!string.IsNullOrWhiteSpace(browserRef))
+        {
+            var byId = browsers.FirstOrDefault(s => string.Equals(s.Surface.Id, browserRef, StringComparison.Ordinal));
+            if (byId != null)
+            {
+                surface = byId;
+                return true;
+            }
+
+            if (TryParseRefIndex(browserRef, "browser", out var browserRefIndex)
+                && TryResolveCollectionIndex(browserRefIndex, browsers.Count, out var resolvedRefIndex))
+            {
+                surface = browsers[resolvedRefIndex];
+                return true;
+            }
+
+            if (int.TryParse(browserRef, out var browserNumeric)
+                && TryResolveCollectionIndex(browserNumeric, browsers.Count, out var resolvedNumericIndex))
+            {
+                surface = browsers[resolvedNumericIndex];
+                return true;
+            }
+
+            error = $"Browser id/ref/index not found: {browserRef}";
+            return false;
+        }
+
+        if (args.TryGetValue("name", out var browserName) && !string.IsNullOrWhiteSpace(browserName))
+        {
+            var byName = browsers.FirstOrDefault(s => string.Equals(s.Name, browserName, StringComparison.OrdinalIgnoreCase))
+                ?? browsers.FirstOrDefault(s => s.Name.Contains(browserName, StringComparison.OrdinalIgnoreCase));
+            if (byName != null)
+            {
+                surface = byName;
+                return true;
+            }
+        }
+
+        surface = workspace.SelectedSurface != null && workspace.SelectedSurface.IsBrowserSurface
+            ? workspace.SelectedSurface
+            : browsers[0];
         return true;
     }
 

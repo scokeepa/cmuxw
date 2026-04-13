@@ -12,11 +12,19 @@ namespace Cmux.Controls;
 public partial class BrowserControl : UserControl
 {
     public event Action? CloseRequested;
+    public event Action? FocusRequested;
 
     public BrowserControl()
     {
         InitializeComponent();
+        PreviewMouseDown += (_, _) => FocusRequested?.Invoke();
         InitializeWebView();
+    }
+
+    public void ClearEventHandlers()
+    {
+        CloseRequested = null;
+        FocusRequested = null;
     }
 
     private async void InitializeWebView()

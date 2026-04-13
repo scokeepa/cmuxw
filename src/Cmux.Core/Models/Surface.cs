@@ -8,5 +8,6 @@ public class Surface
     public string? FocusedPaneId { get; set; }
     public Dictionary<string, string> PaneCustomNames { get; set; } = [];
     public Dictionary<string, PaneStateSnapshot> PaneSnapshots { get; set; } = [];
+    public Dictionary<string, string> BrowserPaneUrls { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

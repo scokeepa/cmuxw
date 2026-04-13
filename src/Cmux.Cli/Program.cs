@@ -36,6 +36,7 @@ public static class Program
                 "notify" => await HandleNotify(args[1..]),
                 "workspace" => await HandleWorkspace(args[1..]),
                 "surface" => await HandleSurface(args[1..]),
+                "browser" => await HandleBrowser(args[1..]),
                 "split" => await HandleSplit(args[1..]),
                 "pane" => await HandlePane(args[1..]),
                 "status" => await HandleStatus(),
@@ -148,6 +149,51 @@ public static class Program
             "right" or "vertical" or "v" => await SendAndPrint("SPLIT.RIGHT"),
             "down" or "horizontal" or "h" => await SendAndPrint("SPLIT.DOWN"),
             _ => Error($"Unknown split direction: {direction}"),
+        };
+    }
+
+    private static async Task<int> HandleBrowser(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            Console.Error.WriteLine("Usage: cmux browser <open|list|select|close>");
+            return 1;
+        }
+
+        var subcommand = args[0].ToLowerInvariant();
+        var parsed = ParseArgs(args[1..]);
+        NormalizeCompatSelector(parsed, "workspace");
+
+        if ((subcommand == "open" || subcommand == "new")
+            && !parsed.ContainsKey("url")
+            && parsed.TryGetValue("_arg0", out var positionalUrl)
+            && !string.IsNullOrWhiteSpace(positionalUrl))
+        {
+            parsed["url"] = positionalUrl;
+        }
+
+        if (!parsed.ContainsKey("browserId")
+            && parsed.TryGetValue("browser", out var browserRef)
+            && !string.IsNullOrWhiteSpace(browserRef))
+        {
+            parsed["browserId"] = browserRef;
+        }
+
+        if (!parsed.ContainsKey("browserId")
+            && parsed.TryGetValue("_arg0", out var positionalBrowser)
+            && !string.IsNullOrWhiteSpace(positionalBrowser)
+            && subcommand is "select" or "close")
+        {
+            parsed["browserId"] = positionalBrowser;
+        }
+
+        return subcommand switch
+        {
+            "open" or "new" => await SendAndPrint("BROWSER.OPEN", parsed),
+            "list" or "ls" => await SendAndPrint("BROWSER.LIST", parsed),
+            "select" => await SendAndPrint("BROWSER.SELECT", parsed),
+            "close" => await SendAndPrint("BROWSER.CLOSE", parsed),
+            _ => Error($"Unknown browser command: {subcommand}"),
         };
     }
 
@@ -512,6 +558,14 @@ public static class Program
                   --submit <bool>    Submit on target after write
 
               status                Show cmux status
+
+              browser               Manage browser surfaces
+                open <url>          Open a browser surface
+                list                List browser surfaces
+                select              Select a browser surface
+                  --browser <id>      Browser/surface ID
+                close               Close a browser surface
+                  --browser <id>      Browser/surface ID
 
             cmux-compatible aliases:
               list-workspaces, new-workspace, select-workspace, close-workspace
