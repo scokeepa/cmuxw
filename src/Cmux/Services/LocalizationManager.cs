@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Text.RegularExpressions;
 
 namespace Cmux.Services;
 
@@ -17,6 +18,9 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         ["ko"] = new Dictionary<string, string>(Cmp)
         {
             ["Settings"] = "설정",
+            ["File"] = "파일",
+            ["Window"] = "창",
+            ["Help"] = "도움말",
             ["Workspace"] = "워크스페이스",
             ["Surface"] = "서피스",
             ["Pane"] = "패널",
@@ -30,6 +34,8 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Agent"] = "에이전트",
             ["New Workspace"] = "새 워크스페이스",
             ["New Surface"] = "새 서피스",
+            ["New Browser"] = "새 브라우저",
+            ["Open Browser"] = "브라우저 열기",
             ["Close Surface"] = "서피스 닫기",
             ["Close Workspace"] = "워크스페이스 닫기",
             ["Split Right"] = "오른쪽 분할",
@@ -39,6 +45,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Test Notification"] = "테스트 알림",
             ["Open Command Logs"] = "명령 로그 열기",
             ["Open Session Vault"] = "세션 보관함 열기",
+            ["Enter a URL to open in a browser surface."] = "브라우저 서피스에서 열 URL을 입력하세요.",
             ["Open Command History"] = "명령 기록 열기",
             ["Insert Last Command"] = "최근 명령 삽입",
             ["Search"] = "검색",
@@ -104,25 +111,26 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Prompt sent"] = "프롬프트 전송됨",
             ["About cmux"] = "cmux 정보",
             ["cmux for Windows\nA terminal multiplexer optimized for modern workflows."] = "Windows용 cmux\n현대적인 워크플로우에 최적화된 터미널 멀티플렉서입니다.",
+            ["cmuxw for Windows\nA terminal multiplexer for AI coding workflows with built-in browser surfaces and automation support."] = "Windows용 cmuxw\n브라우저 서피스와 자동화 기능을 포함한 AI 코딩 워크플로우용 터미널 멀티플렉서입니다.",
             ["Settings saved."] = "설정이 저장되었습니다."
-            ,["_File"] = "파일(_F)"
-            ,["_Window"] = "창(_W)"
-            ,["_Help"] = "도움말(_H)"
-            ,["_New Workspace"] = "새 워크스페이스(_N)"
-            ,["New _Surface"] = "새 서피스(_S)"
-            ,["Open Command _Logs"] = "명령 로그 열기(_L)"
-            ,["Open Session _Vault"] = "세션 보관함 열기(_V)"
-            ,["_Settings"] = "설정(_S)"
-            ,["E_xit"] = "종료(_X)"
-            ,["Split _Right"] = "오른쪽 분할(_R)"
-            ,["Split _Down"] = "아래 분할(_D)"
-            ,["_Zoom Pane"] = "패널 확대(_Z)"
-            ,["_Equalize Panes"] = "패널 균등 분할(_E)"
-            ,["_Search"] = "검색(_S)"
-            ,["Command _Palette"] = "명령 팔레트(_P)"
-            ,["_Snippets"] = "스니펫(_S)"
-            ,["Toggle Agent _Chat"] = "에이전트 채팅 토글(_C)"
-            ,["Toggle _Sidebar"] = "사이드바 토글(_S)"
+            ,["_File"] = "파일"
+            ,["_Window"] = "창"
+            ,["_Help"] = "도움말"
+            ,["_New Workspace"] = "새 워크스페이스"
+            ,["New _Surface"] = "새 서피스"
+            ,["Open Command _Logs"] = "명령 로그 열기"
+            ,["Open Session _Vault"] = "세션 보관함 열기"
+            ,["_Settings"] = "설정"
+            ,["E_xit"] = "종료"
+            ,["Split _Right"] = "오른쪽 분할"
+            ,["Split _Down"] = "아래 분할"
+            ,["_Zoom Pane"] = "패널 확대"
+            ,["_Equalize Panes"] = "패널 균등 분할"
+            ,["_Search"] = "검색"
+            ,["Command _Palette"] = "명령 팔레트"
+            ,["_Snippets"] = "스니펫"
+            ,["Toggle Agent _Chat"] = "에이전트 채팅 토글"
+            ,["Toggle _Sidebar"] = "사이드바 토글"
             ,["Keyboard Shortcuts"] = "키보드 단축키"
             ,["About"] = "정보"
             ,["Minimize"] = "최소화"
@@ -139,9 +147,14 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["Filter workspaces by name, branch, or directory"] = "이름/브랜치/디렉터리로 워크스페이스 필터"
             ,["Open pane with shell..."] = "셸로 패널 열기..."
             ,["Layout: 2 Columns"] = "레이아웃: 2열"
+            ,["Layout: 3 Columns"] = "레이아웃: 3열"
             ,["Layout: Grid 2x2"] = "레이아웃: 2x2 그리드"
             ,["Layout: Main + Stack"] = "레이아웃: 메인 + 스택"
             ,["Toggle Agent Chat (Ctrl+Shift+A)"] = "에이전트 채팅 토글 (Ctrl+Shift+A)"
+            ,["Open Browser (Ctrl+Shift+B)"] = "브라우저 열기 (Ctrl+Shift+B)"
+            ,["0 panes"] = "패널 0개"
+            ,["{0} panes"] = "패널 {0}개"
+            ,["{0} panes (1 zoomed)"] = "패널 {0}개 (1개 확대)"
             ,["1 pane"] = "패널 1개"
             ,["Agent Chat"] = "에이전트 채팅"
             ,["Persistent threads per pane"] = "패널별 스레드 유지"
@@ -317,6 +330,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["System"] = "시스템"
             ,["cmuxw for Windows"] = "Windows용 cmuxw"
             ,["A modern terminal multiplexer for AI coding agents on Windows. Includes split panes, workspaces, command palette, and browser automation-ready panels."] = "Windows 환경의 AI 코딩 에이전트를 위한 최신 터미널 멀티플렉서입니다. 분할 패널, 워크스페이스, 명령 팔레트, 브라우저 자동화 준비 패널을 포함합니다."
+            ,["Windows-native terminal multiplexer for AI coding workflows. Includes workspaces, split panes, command palette, multilingual UI, and integrated browser surfaces with Playwright automation."] = "Windows 네이티브 AI 코딩 워크플로우용 터미널 멀티플렉서입니다. 워크스페이스, 분할 패널, 명령 팔레트, 다국어 UI, Playwright 자동화를 위한 통합 브라우저 서피스를 포함합니다."
             ,["Runtime: .NET 10"] = "런타임: .NET 10"
             ,["Framework: WPF + CommunityToolkit.Mvvm"] = "프레임워크: WPF + CommunityToolkit.Mvvm"
             ,["Config: %LOCALAPPDATA%\\cmux\\settings.json"] = "설정: %LOCALAPPDATA%\\cmux\\settings.json"
@@ -324,10 +338,51 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["Custom tool command template is required."] = "사용자 도구 명령 템플릿이 필요합니다."
             ,["MCP server name is required."] = "MCP 서버 이름이 필요합니다."
             ,["MCP server command is required."] = "MCP 서버 명령이 필요합니다."
+            ,["Description"] = "설명"
+            ,["Background"] = "배경"
+            ,["Foreground"] = "전경"
+            ,["Cursor"] = "커서"
+            ,["Selection"] = "선택"
+            ,["Visual Bell"] = "시각 벨"
+            ,["Bracketed Paste"] = "괄호 붙여넣기"
+            ,["Enable Submit Profiles"] = "전송 프로파일 활성화"
+            ,["Submit Profiles JSON (array). Fields: enabled, name, workspacePattern, surfacePattern, panePattern, commandPattern, tailPattern, submitOrder, repeatCount, delayMs, waitMs, autoOnly."] = "전송 프로파일 JSON(배열). 필드: enabled, name, workspacePattern, surfacePattern, panePattern, commandPattern, tailPattern, submitOrder, repeatCount, delayMs, waitMs, autoOnly."
+            ,["submitOrder keys: enter,linefeed,crlf. Patterns support substring or wildcard * and ?."] = "submitOrder 키: enter,linefeed,crlf. 패턴은 부분 문자열 또는 와일드카드(*, ?)를 지원합니다."
+            ,["Agent Files & Skills"] = "에이전트 파일 및 스킬"
+            ,["Auto Discover"] = "자동 탐색"
+            ,["Instructions Path"] = "지침 파일 경로"
+            ,["Skills Root Path"] = "스킬 루트 경로"
+            ,["Path to agents.md/AGENTS.md file. Leave empty to use auto discovery."] = "agents.md/AGENTS.md 파일 경로입니다. 비워두면 자동 탐색을 사용합니다."
+            ,["Path to skills root folder. Leave empty to use auto discovery."] = "스킬 루트 폴더 경로입니다. 비워두면 자동 탐색을 사용합니다."
+            ,["Chat Panel"] = "채팅 패널"
+            ,["Chat Font Family"] = "채팅 글꼴"
+            ,["Chat Font Size"] = "채팅 글자 크기"
+            ,["Conversation Memory"] = "대화 메모리"
+            ,["Enable Memory"] = "메모리 활성화"
+            ,["Enable Streaming"] = "스트리밍 활성화"
+            ,["Auto Compact Context"] = "컨텍스트 자동 압축"
+            ,["Max Context Messages"] = "최대 컨텍스트 메시지"
+            ,["Context Budget Tokens"] = "컨텍스트 토큰 예산"
+            ,["Compact Threshold %"] = "압축 임계값 %"
+            ,["Keep Recent on Compact"] = "압축 시 최근 메시지 유지"
+            ,["Custom Tools Mode"] = "사용자 도구 모드"
+            ,["Creator"] = "생성기"
+            ,["JSON"] = "JSON"
+            ,["Command Template"] = "명령 템플릿"
+            ,["Enabled"] = "활성화"
+            ,["Add / Update"] = "추가 / 업데이트"
+            ,["Remove Selected"] = "선택 항목 제거"
+            ,["Custom Tools JSON (array of { enabled, name, description, commandTemplate })"] = "사용자 도구 JSON ({ enabled, name, description, commandTemplate } 배열)"
+            ,["MCP Servers Mode"] = "MCP 서버 모드"
+            ,["Arguments"] = "인수"
+            ,["MCP Servers JSON (array of { enabled, name, command, arguments, workingDirectory })"] = "MCP 서버 JSON ({ enabled, name, command, arguments, workingDirectory } 배열)"
         },
         ["zh-CN"] = new Dictionary<string, string>(Cmp)
         {
             ["Settings"] = "设置",
+            ["File"] = "文件",
+            ["Window"] = "窗口",
+            ["Help"] = "帮助",
             ["Workspace"] = "工作区",
             ["Surface"] = "标签页",
             ["Pane"] = "面板",
@@ -341,6 +396,8 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Agent"] = "代理",
             ["New Workspace"] = "新工作区",
             ["New Surface"] = "新标签页",
+            ["New Browser"] = "新建浏览器",
+            ["Open Browser"] = "打开浏览器",
             ["Close Surface"] = "关闭标签页",
             ["Close Workspace"] = "关闭工作区",
             ["Split Right"] = "向右分割",
@@ -350,6 +407,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Test Notification"] = "测试通知",
             ["Open Command Logs"] = "打开命令日志",
             ["Open Session Vault"] = "打开会话库",
+            ["Enter a URL to open in a browser surface."] = "输入要在浏览器标签页中打开的 URL。",
             ["Open Command History"] = "打开命令历史",
             ["Insert Last Command"] = "插入上一条命令",
             ["Search"] = "搜索",
@@ -415,25 +473,26 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Prompt sent"] = "提示已发送",
             ["About cmux"] = "关于 cmux",
             ["cmux for Windows\nA terminal multiplexer optimized for modern workflows."] = "Windows 版 cmux\n面向现代工作流优化的终端复用器。",
+            ["cmuxw for Windows\nA terminal multiplexer for AI coding workflows with built-in browser surfaces and automation support."] = "Windows 版 cmuxw\n面向 AI 编码工作流的终端复用器，内置浏览器标签页与自动化支持。",
             ["Settings saved."] = "设置已保存。",
-            ["_File"] = "文件(_F)",
-            ["_Window"] = "窗口(_W)",
-            ["_Help"] = "帮助(_H)",
-            ["_New Workspace"] = "新建工作区(_N)",
-            ["New _Surface"] = "新建标签页(_S)",
-            ["Open Command _Logs"] = "打开命令日志(_L)",
-            ["Open Session _Vault"] = "打开会话库(_V)",
-            ["_Settings"] = "设置(_S)",
-            ["E_xit"] = "退出(_X)",
-            ["Split _Right"] = "向右分割(_R)",
-            ["Split _Down"] = "向下分割(_D)",
-            ["_Zoom Pane"] = "放大面板(_Z)",
-            ["_Equalize Panes"] = "均分面板(_E)",
-            ["_Search"] = "搜索(_S)",
-            ["Command _Palette"] = "命令面板(_P)",
-            ["_Snippets"] = "片段(_S)",
-            ["Toggle Agent _Chat"] = "切换代理聊天(_C)",
-            ["Toggle _Sidebar"] = "切换侧边栏(_S)",
+            ["_File"] = "文件",
+            ["_Window"] = "窗口",
+            ["_Help"] = "帮助",
+            ["_New Workspace"] = "新建工作区",
+            ["New _Surface"] = "新建标签页",
+            ["Open Command _Logs"] = "打开命令日志",
+            ["Open Session _Vault"] = "打开会话库",
+            ["_Settings"] = "设置",
+            ["E_xit"] = "退出",
+            ["Split _Right"] = "向右分割",
+            ["Split _Down"] = "向下分割",
+            ["_Zoom Pane"] = "放大面板",
+            ["_Equalize Panes"] = "均分面板",
+            ["_Search"] = "搜索",
+            ["Command _Palette"] = "命令面板",
+            ["_Snippets"] = "片段",
+            ["Toggle Agent _Chat"] = "切换代理聊天",
+            ["Toggle _Sidebar"] = "切换侧边栏",
             ["Keyboard Shortcuts"] = "键盘快捷键",
             ["About"] = "关于",
             ["Minimize"] = "最小化",
@@ -450,9 +509,14 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Filter workspaces by name, branch, or directory"] = "按名称、分支或目录过滤工作区",
             ["Open pane with shell..."] = "用 Shell 打开面板...",
             ["Layout: 2 Columns"] = "布局：2 列",
+            ["Layout: 3 Columns"] = "布局：3 列",
             ["Layout: Grid 2x2"] = "布局：2x2 网格",
             ["Layout: Main + Stack"] = "布局：主面板 + 堆叠",
             ["Toggle Agent Chat (Ctrl+Shift+A)"] = "切换代理聊天 (Ctrl+Shift+A)",
+            ["Open Browser (Ctrl+Shift+B)"] = "打开浏览器 (Ctrl+Shift+B)",
+            ["0 panes"] = "0 个面板",
+            ["{0} panes"] = "{0} 个面板",
+            ["{0} panes (1 zoomed)"] = "{0} 个面板（1 个已放大）",
             ["1 pane"] = "1 个面板",
             ["Agent Chat"] = "代理聊天",
             ["Persistent threads per pane"] = "每个面板保留线程",
@@ -628,6 +692,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["System"] = "系统"
             ,["cmuxw for Windows"] = "Windows 版 cmuxw"
             ,["A modern terminal multiplexer for AI coding agents on Windows. Includes split panes, workspaces, command palette, and browser automation-ready panels."] = "面向 Windows 上 AI 编码代理的现代终端复用器，包含分屏、工作区、命令面板和可扩展的浏览器自动化面板。"
+            ,["Windows-native terminal multiplexer for AI coding workflows. Includes workspaces, split panes, command palette, multilingual UI, and integrated browser surfaces with Playwright automation."] = "面向 AI 编码工作流的 Windows 原生终端复用器，包含工作区、分屏、命令面板、多语言 UI，以及支持 Playwright 自动化的集成浏览器标签页。"
             ,["Runtime: .NET 10"] = "运行时：.NET 10"
             ,["Framework: WPF + CommunityToolkit.Mvvm"] = "框架：WPF + CommunityToolkit.Mvvm"
             ,["Config: %LOCALAPPDATA%\\cmux\\settings.json"] = "配置：%LOCALAPPDATA%\\cmux\\settings.json"
@@ -635,6 +700,44 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["Custom tool command template is required."] = "自定义工具命令模板是必填项。"
             ,["MCP server name is required."] = "MCP 服务器名称是必填项。"
             ,["MCP server command is required."] = "MCP 服务器命令是必填项。"
+            ,["Description"] = "描述"
+            ,["Background"] = "背景"
+            ,["Foreground"] = "前景"
+            ,["Cursor"] = "光标"
+            ,["Selection"] = "选区"
+            ,["Visual Bell"] = "视觉提示铃"
+            ,["Bracketed Paste"] = "括号粘贴"
+            ,["Enable Submit Profiles"] = "启用提交配置"
+            ,["Submit Profiles JSON (array). Fields: enabled, name, workspacePattern, surfacePattern, panePattern, commandPattern, tailPattern, submitOrder, repeatCount, delayMs, waitMs, autoOnly."] = "提交配置 JSON（数组）。字段：enabled, name, workspacePattern, surfacePattern, panePattern, commandPattern, tailPattern, submitOrder, repeatCount, delayMs, waitMs, autoOnly。"
+            ,["submitOrder keys: enter,linefeed,crlf. Patterns support substring or wildcard * and ?."] = "submitOrder 键：enter,linefeed,crlf。模式支持子串或通配符（*、?）。"
+            ,["Agent Files & Skills"] = "代理文件与技能"
+            ,["Auto Discover"] = "自动发现"
+            ,["Instructions Path"] = "说明文件路径"
+            ,["Skills Root Path"] = "技能根路径"
+            ,["Path to agents.md/AGENTS.md file. Leave empty to use auto discovery."] = "agents.md/AGENTS.md 文件路径。留空则使用自动发现。"
+            ,["Path to skills root folder. Leave empty to use auto discovery."] = "技能根目录路径。留空则使用自动发现。"
+            ,["Chat Panel"] = "聊天面板"
+            ,["Chat Font Family"] = "聊天字体"
+            ,["Chat Font Size"] = "聊天字号"
+            ,["Conversation Memory"] = "会话记忆"
+            ,["Enable Memory"] = "启用记忆"
+            ,["Enable Streaming"] = "启用流式输出"
+            ,["Auto Compact Context"] = "自动压缩上下文"
+            ,["Max Context Messages"] = "最大上下文消息数"
+            ,["Context Budget Tokens"] = "上下文令牌预算"
+            ,["Compact Threshold %"] = "压缩阈值 %"
+            ,["Keep Recent on Compact"] = "压缩时保留最近消息"
+            ,["Custom Tools Mode"] = "自定义工具模式"
+            ,["Creator"] = "创建器"
+            ,["JSON"] = "JSON"
+            ,["Command Template"] = "命令模板"
+            ,["Enabled"] = "启用"
+            ,["Add / Update"] = "添加 / 更新"
+            ,["Remove Selected"] = "移除所选"
+            ,["Custom Tools JSON (array of { enabled, name, description, commandTemplate })"] = "自定义工具 JSON（{ enabled, name, description, commandTemplate } 数组）"
+            ,["MCP Servers Mode"] = "MCP 服务器模式"
+            ,["Arguments"] = "参数"
+            ,["MCP Servers JSON (array of { enabled, name, command, arguments, workingDirectory })"] = "MCP 服务器 JSON（{ enabled, name, command, arguments, workingDirectory } 数组）"
         }
     };
 
@@ -671,12 +774,12 @@ public sealed class LocalizationManager : INotifyPropertyChanged
 
         var key = ResolveKey(text);
         if (_language.Equals("en", StringComparison.OrdinalIgnoreCase))
-            return key;
+            return NormalizeAccessKeyArtifacts(key);
 
         if (_translations.TryGetValue(_language, out var map) && map.TryGetValue(key, out var translated))
-            return translated;
+            return NormalizeAccessKeyArtifacts(translated);
 
-        return key;
+        return NormalizeAccessKeyArtifacts(key);
     }
 
     public void ApplyToVisualTree(DependencyObject root)
@@ -743,6 +846,23 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         if (raw.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
             return "zh-CN";
         return "en";
+    }
+
+    private static string NormalizeAccessKeyArtifacts(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        // Legacy menu labels included mnemonics like "_File" / "파일(_F)".
+        // Strip these markers so labels look natural across languages.
+        if (!text.Contains('_') && !text.Contains("(_", StringComparison.Ordinal))
+            return text;
+
+        var cleaned = Regex.Replace(text, @"\s*\(_.\)", string.Empty);
+        if (cleaned.StartsWith('_') || cleaned.Contains(" _", StringComparison.Ordinal))
+            cleaned = cleaned.Replace("_", string.Empty);
+
+        return cleaned;
     }
 
     private void BuildLookup()

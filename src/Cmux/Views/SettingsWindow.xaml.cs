@@ -106,9 +106,10 @@ public partial class SettingsWindow : Window
         AgentNameBox.Text = string.IsNullOrWhiteSpace(agent.AgentName) ? "assistant" : agent.AgentName;
         AgentHandlerBox.Text = string.IsNullOrWhiteSpace(agent.Handler) ? "/agent" : agent.Handler;
         AgentAdditionalHandlersBox.Text = agent.AdditionalHandlers ?? "";
-        AgentSystemPromptBox.Text = string.IsNullOrWhiteSpace(agent.SystemPrompt)
+        var currentSystemPrompt = agent.SystemPrompt?.Trim() ?? "";
+        AgentSystemPromptBox.Text = ShouldUseLocalizedDefaultPrompt(currentSystemPrompt)
             ? GetDefaultAgentSystemPrompt(selectedLanguage)
-            : agent.SystemPrompt;
+            : currentSystemPrompt;
 
         var activeProvider = string.IsNullOrWhiteSpace(agent.ActiveProvider) ? "openai" : agent.ActiveProvider;
         AgentProviderCombo.SelectedIndex = string.Equals(activeProvider, "anthropic", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
@@ -468,20 +469,37 @@ public partial class SettingsWindow : Window
         };
     }
 
+    private static bool ShouldUseLocalizedDefaultPrompt(string prompt)
+    {
+        if (string.IsNullOrWhiteSpace(prompt))
+            return true;
+
+        return GetKnownDefaultPrompts().Any(defaultPrompt =>
+            string.Equals(defaultPrompt, prompt.Trim(), StringComparison.Ordinal));
+    }
+
+    private static IReadOnlyList<string> GetKnownDefaultPrompts()
+    {
+        return
+        [
+            // Current defaults
+            GetDefaultAgentSystemPrompt("en"),
+            GetDefaultAgentSystemPrompt("ko"),
+            GetDefaultAgentSystemPrompt("zh-CN"),
+            // Legacy defaults from earlier builds
+            "You are a pragmatic engineering assistant running inside cmux. Keep responses concise and action-oriented.",
+            "당신은 cmux 내부에서 실행되는 실용적인 엔지니어링 어시스턴트입니다. 답변은 간결하고 실행 중심으로 유지하세요.",
+            "你是运行在 cmux 内部的务实工程助手。请保持回答简洁并以行动为导向。"
+        ];
+    }
+
     private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         var newLanguage = ResolveSelectedLanguage();
         var newDefaultPrompt = GetDefaultAgentSystemPrompt(newLanguage);
         var currentPrompt = AgentSystemPromptBox.Text?.Trim() ?? "";
 
-        var knownDefaults = new[]
-        {
-            GetDefaultAgentSystemPrompt("en"),
-            GetDefaultAgentSystemPrompt("ko"),
-            GetDefaultAgentSystemPrompt("zh-CN"),
-        };
-
-        if (knownDefaults.Any(defaultPrompt => string.Equals(defaultPrompt, currentPrompt, StringComparison.Ordinal)))
+        if (ShouldUseLocalizedDefaultPrompt(currentPrompt))
             AgentSystemPromptBox.Text = newDefaultPrompt;
     }
 

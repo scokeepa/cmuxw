@@ -1387,7 +1387,7 @@
                                            Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,4" />
                                 <TextBlock x:Name="AboutVersionText" Text="v1.0.0" FontSize="13"
                                            Foreground="{StaticResource AccentBrush}" Margin="0,0,0,12" />
-                                <TextBlock Text="A modern terminal multiplexer for AI coding agents on Windows. Includes split panes, workspaces, command palette, and browser automation-ready panels."
+                                <TextBlock Text="Windows-native terminal multiplexer for AI coding workflows. Includes workspaces, split panes, command palette, multilingual UI, and integrated browser surfaces with Playwright automation."
                                            Foreground="{StaticResource ForegroundDimBrush}" FontSize="13"
                                            TextWrapping="Wrap" LineHeight="20" Margin="0,0,0,12" />
                                 <Border Height="1" Background="{StaticResource BorderBrush}" Margin="0,4,0,12" />

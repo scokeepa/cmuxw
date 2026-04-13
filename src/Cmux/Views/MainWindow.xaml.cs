@@ -18,6 +18,7 @@ namespace Cmux.Views;
 
 public partial class MainWindow : Window
 {
+    private const string DefaultBrowserUrl = "https://github.com/manaflow-ai/cmux";
     private MainViewModel ViewModel => (MainViewModel)DataContext;
     private readonly DispatcherTimer _uiRefreshTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
     private ICollectionView? _workspaceView;
@@ -438,6 +439,10 @@ public partial class MainWindow : Window
                     ToggleAgentChat();
                     e.Handled = true;
                     return;
+                case Key.B: // Open browser
+                    OpenBrowserSurface();
+                    e.Handled = true;
+                    return;
             }
         }
 
@@ -649,6 +654,7 @@ public partial class MainWindow : Window
 
     private void MenuOpenLogs_Click(object sender, RoutedEventArgs e) => OpenLogsWindow();
     private void MenuOpenSessionVault_Click(object sender, RoutedEventArgs e) => OpenSessionVault();
+    private void MenuOpenBrowser_Click(object sender, RoutedEventArgs e) => OpenBrowserSurface();
     private void MenuToggleAgentChat_Click(object sender, RoutedEventArgs e) => ToggleAgentChat();
     private void MenuOpenSettings_Click(object sender, RoutedEventArgs e) => OpenSettings();
     private void MenuOpenKeyboardShortcuts_Click(object sender, RoutedEventArgs e)
@@ -659,15 +665,24 @@ public partial class MainWindow : Window
     private void MenuAbout_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show(
-            L.T("cmux for Windows\nA terminal multiplexer optimized for modern workflows."),
+            L.T("cmuxw for Windows\nA terminal multiplexer for AI coding workflows with built-in browser surfaces and automation support."),
             L.T("About cmux"),
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
 
     // Toolbar handlers
-    private void ToolbarSplitRight_Click(object sender, RoutedEventArgs e) => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitRight();
-    private void ToolbarSplitDown_Click(object sender, RoutedEventArgs e) => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitDown();
+    private void ToolbarSplitRight_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SelectedWorkspace?.SelectedSurface?.SplitRight();
+        RequestTerminalFocusAfterNavigation();
+    }
+
+    private void ToolbarSplitDown_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.SelectedWorkspace?.SelectedSurface?.SplitDown();
+        RequestTerminalFocusAfterNavigation();
+    }
     private void ShellSelector_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button button) return;
@@ -698,6 +713,30 @@ public partial class MainWindow : Window
     {
         ViewModel.SelectedWorkspace?.SelectedSurface?.ToggleZoom();
         RefreshSurfaceUiState();
+    }
+
+    private void OpenBrowserSurface()
+    {
+        var workspace = ViewModel.SelectedWorkspace;
+        if (workspace == null)
+            return;
+
+        var prompt = new TextPromptWindow(
+            L.T("Open Browser"),
+            L.T("Enter a URL to open in a browser surface."),
+            DefaultBrowserUrl)
+        {
+            Owner = this
+        };
+
+        if (prompt.ShowDialog() != true)
+            return;
+
+        var url = (prompt.ResponseText ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(url))
+            return;
+
+        workspace.CreateBrowserSurface(url);
     }
 
 
@@ -1111,6 +1150,7 @@ public partial class MainWindow : Window
         [
             new() { Id = "new-workspace", Label = L.T("New Workspace"), Icon = "\uE710", Shortcut = "Ctrl+N", Category = L.T("Workspace"), Execute = () => ViewModel.CreateNewWorkspace() },
             new() { Id = "new-surface", Label = L.T("New Surface"), Icon = "\uE710", Shortcut = "Ctrl+T", Category = L.T("Surface"), Execute = () => ViewModel.SelectedWorkspace?.CreateNewSurface() },
+            new() { Id = "new-browser", Label = L.T("New Browser"), Icon = "\uE774", Shortcut = "Ctrl+Shift+B", Category = L.T("Surface"), Execute = OpenBrowserSurface },
             new() { Id = "close-surface", Label = L.T("Close Surface"), Icon = "\uE711", Shortcut = "Ctrl+W", Category = L.T("Surface"), Execute = () => { var s = ViewModel.SelectedWorkspace?.SelectedSurface; if (s != null) ViewModel.SelectedWorkspace?.CloseSurface(s); } },
             new() { Id = "close-workspace", Label = L.T("Close Workspace"), Icon = "\uE711", Shortcut = "Ctrl+Shift+W", Category = L.T("Workspace"), Execute = () => ViewModel.CloseWorkspace(ViewModel.SelectedWorkspace) },
             new() { Id = "split-right", Label = L.T("Split Right"), Icon = "\uE26B", Shortcut = "Ctrl+D", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitRight() },
@@ -1233,7 +1273,7 @@ public partial class MainWindow : Window
         var surface = ViewModel.SelectedWorkspace?.SelectedSurface;
         if (surface == null)
         {
-            PaneCountText.Text = "0 panes";
+            PaneCountText.Text = L.T("0 panes");
             ToolbarZoomIcon.Text = "\uE740";
             ToolbarZoomButton.ToolTip = $"{L.T("Zoom Pane")} (Ctrl+Shift+Z)";
             return;
@@ -1241,8 +1281,8 @@ public partial class MainWindow : Window
 
         var paneCount = surface.RootNode.GetLeaves().Count();
         PaneCountText.Text = surface.IsZoomed
-            ? $"{paneCount} panes (1 zoomed)"
-            : paneCount == 1 ? "1 pane" : $"{paneCount} panes";
+            ? string.Format(L.T("{0} panes (1 zoomed)"), paneCount)
+            : paneCount == 1 ? L.T("1 pane") : string.Format(L.T("{0} panes"), paneCount);
 
         ToolbarZoomIcon.Text = surface.IsZoomed ? "\uE73F" : "\uE740";
         ToolbarZoomButton.ToolTip = surface.IsZoomed
