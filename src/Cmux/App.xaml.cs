@@ -26,7 +26,9 @@ public partial class App : Application
         base.OnStartup(e);
 
         LocalizationManager.Instance.SetLanguage(SettingsService.Current.UiLanguage);
+        ThemeManager.ApplyTheme(SettingsService.Current.ThemeName);
         LocalizationManager.Instance.LanguageChanged += ReapplyLocalizationToOpenWindows;
+        SettingsService.SettingsChanged += OnSettingsChanged;
         EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnVisualLoaded));
         EventManager.RegisterClassHandler(typeof(UserControl), FrameworkElement.LoadedEvent, new RoutedEventHandler(OnVisualLoaded));
 
@@ -86,6 +88,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        SettingsService.SettingsChanged -= OnSettingsChanged;
         _pipeServer?.Dispose();
         DaemonClient.Dispose();
         AgentRuntime.Dispose();
@@ -104,5 +107,11 @@ public partial class App : Application
     {
         foreach (Window window in Current.Windows)
             LocalizationManager.Instance.ApplyToVisualTree(window);
+    }
+
+    private static void OnSettingsChanged()
+    {
+        ThemeManager.ApplyTheme(SettingsService.Current.ThemeName);
+        ReapplyLocalizationToOpenWindows();
     }
 }

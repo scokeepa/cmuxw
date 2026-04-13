@@ -36,6 +36,7 @@ public static class Program
                 "notify" => await HandleNotify(args[1..]),
                 "workspace" => await HandleWorkspace(args[1..]),
                 "surface" => await HandleSurface(args[1..]),
+                "browser" => await HandleBrowser(args[1..]),
                 "split" => await HandleSplit(args[1..]),
                 "pane" => await HandlePane(args[1..]),
                 "status" => await HandleStatus(),
@@ -148,6 +149,70 @@ public static class Program
             "right" or "vertical" or "v" => await SendAndPrint("SPLIT.RIGHT"),
             "down" or "horizontal" or "h" => await SendAndPrint("SPLIT.DOWN"),
             _ => Error($"Unknown split direction: {direction}"),
+        };
+    }
+
+    private static async Task<int> HandleBrowser(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            Console.Error.WriteLine("Usage: cmux browser <open|list|select|close|snapshot|click|fill|type|eval>");
+            return 1;
+        }
+
+        var subcommand = args[0].ToLowerInvariant();
+        var parsed = ParseArgs(args[1..]);
+        NormalizeCompatSelector(parsed, "workspace");
+
+        if ((subcommand == "open" || subcommand == "new")
+            && !parsed.ContainsKey("url")
+            && parsed.TryGetValue("_arg0", out var positionalUrl)
+            && !string.IsNullOrWhiteSpace(positionalUrl))
+        {
+            parsed["url"] = positionalUrl;
+        }
+
+        if (!parsed.ContainsKey("browserId")
+            && parsed.TryGetValue("browser", out var browserRef)
+            && !string.IsNullOrWhiteSpace(browserRef))
+        {
+            parsed["browserId"] = browserRef;
+        }
+
+        if (!parsed.ContainsKey("browserId")
+            && parsed.TryGetValue("_arg0", out var positionalBrowser)
+            && !string.IsNullOrWhiteSpace(positionalBrowser)
+            && subcommand is "select" or "close")
+        {
+            parsed["browserId"] = positionalBrowser;
+        }
+
+        if (subcommand is "click" or "fill" or "type")
+        {
+            if (!parsed.ContainsKey("selector") && parsed.TryGetValue("_arg0", out var positionalSelector))
+                parsed["selector"] = positionalSelector;
+            if (subcommand is "fill" or "type")
+            {
+                if (!parsed.ContainsKey("value") && parsed.TryGetValue("_arg1", out var positionalValue))
+                    parsed["value"] = positionalValue;
+            }
+        }
+
+        if (subcommand == "eval" && !parsed.ContainsKey("script") && parsed.TryGetValue("_arg0", out var positionalScript))
+            parsed["script"] = positionalScript;
+
+        return subcommand switch
+        {
+            "open" or "new" => await SendAndPrint("BROWSER.OPEN", parsed),
+            "list" or "ls" => await SendAndPrint("BROWSER.LIST", parsed),
+            "select" => await SendAndPrint("BROWSER.SELECT", parsed),
+            "close" => await SendAndPrint("BROWSER.CLOSE", parsed),
+            "snapshot" => await SendAndPrint("BROWSER.SNAPSHOT", parsed),
+            "click" => await SendAndPrint("BROWSER.CLICK", parsed),
+            "fill" => await SendAndPrint("BROWSER.FILL", parsed),
+            "type" => await SendAndPrint("BROWSER.TYPE", parsed),
+            "eval" => await SendAndPrint("BROWSER.EVAL", parsed),
+            _ => Error($"Unknown browser command: {subcommand}"),
         };
     }
 
@@ -513,6 +578,25 @@ public static class Program
 
               status                Show cmux status
 
+              browser               Manage browser surfaces
+                open <url>          Open a browser surface
+                list                List browser surfaces
+                select              Select a browser surface
+                  --browser <id>      Browser/surface ID
+                close               Close a browser surface
+                  --browser <id>      Browser/surface ID
+                snapshot            Capture accessibility snapshot from selected browser
+                click               Click CSS selector on selected browser
+                  --selector <css>    Element selector
+                fill                Fill CSS selector value on selected browser
+                  --selector <css>
+                  --value <text>
+                type                Type/append value into CSS selector on selected browser
+                  --selector <css>
+                  --value <text>
+                eval                Evaluate JavaScript on selected browser
+                  --script <js>
+
             cmux-compatible aliases:
               list-workspaces, new-workspace, select-workspace, close-workspace
               rename-workspace, current-workspace
@@ -539,7 +623,7 @@ public static class Program
 
     private static int PrintVersion()
     {
-        Console.WriteLine("cmux 1.0.6 (Windows)");
+        Console.WriteLine("cmux 1.0.7 (Windows)");
         return 0;
     }
 

@@ -12,11 +12,19 @@ namespace Cmux.Controls;
 public partial class BrowserControl : UserControl
 {
     public event Action? CloseRequested;
+    public event Action? FocusRequested;
 
     public BrowserControl()
     {
         InitializeComponent();
+        PreviewMouseDown += (_, _) => FocusRequested?.Invoke();
         InitializeWebView();
+    }
+
+    public void ClearEventHandlers()
+    {
+        CloseRequested = null;
+        FocusRequested = null;
     }
 
     private async void InitializeWebView()
@@ -102,6 +110,28 @@ public partial class BrowserControl : UserControl
                     el.value = '{escapedValue}';
                     el.dispatchEvent(new Event('input', {{ bubbles: true }}));
                     el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
+            }})()
+        ");
+    }
+
+    /// <summary>Type text into an element by CSS selector.</summary>
+    public async Task TypeElement(string selector, string value)
+    {
+        var escapedSelector = selector.Replace("'", "\\'");
+        var escapedValue = value.Replace("'", "\\'");
+        await EvaluateJavaScript($@"
+            (() => {{
+                const el = document.querySelector('{escapedSelector}');
+                if (el) {{
+                    if (typeof el.focus === 'function') el.focus();
+                    if ('value' in el) {{
+                        el.value = (el.value || '') + '{escapedValue}';
+                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    }} else {{
+                        el.textContent = (el.textContent || '') + '{escapedValue}';
+                    }}
                 }}
             }})()
         ");

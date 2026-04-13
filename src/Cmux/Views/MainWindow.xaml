@@ -51,7 +51,11 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
                         <Grid>
-                            <Border x:Name="TopItemBg" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <Border x:Name="TopItemBg"
+                                    Background="Transparent"
+                                    CornerRadius="4"
+                                    Padding="{TemplateBinding Padding}"
+                                    TextElement.Foreground="{TemplateBinding Foreground}">
                                 <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
                             </Border>
                             <Popup x:Name="PART_Popup"
@@ -87,7 +91,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="SubItemBg" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="SubItemBg"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}"
+                                TextElement.Foreground="{TemplateBinding Foreground}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />

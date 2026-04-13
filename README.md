@@ -42,9 +42,11 @@ dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contain
 
 ### Releases
 ```powershell
-.\release.ps1 -Tag v0.1.1 -AssetPath publish/cmuxw-win-x64.zip
-.\release.ps1 -Tag v0.1.1 -AssetPath publish/cmuxw-win-x64.zip -UpdateExisting
+.\release.ps1 -Tag v0.1.2 -AssetPath publish/cmuxw-win-x64.zip
+.\release.ps1 -Tag v0.1.2 -AssetPath publish/cmuxw-win-x64.zip -UpdateExisting
 ```
+
+Release notes history: [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
 

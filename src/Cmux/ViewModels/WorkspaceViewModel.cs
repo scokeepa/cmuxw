@@ -95,6 +95,26 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
         SelectedSurface = surfaceVm;
     }
 
+    public SurfaceViewModel CreateBrowserSurface(string url, string? name = null)
+    {
+        var surface = new Surface
+        {
+            Name = string.IsNullOrWhiteSpace(name) ? $"Browser {Surfaces.Count + 1}" : name.Trim(),
+        };
+
+        var paneId = surface.RootSplitNode.PaneId;
+        if (!string.IsNullOrWhiteSpace(paneId))
+            surface.BrowserPaneUrls[paneId] = url;
+
+        Workspace.Surfaces.Add(surface);
+
+        var surfaceVm = new SurfaceViewModel(surface, Workspace.Id, _notificationService);
+        surfaceVm.WorkingDirectoryChanged += OnSurfaceWorkingDirectoryChanged;
+        Surfaces.Add(surfaceVm);
+        SelectedSurface = surfaceVm;
+        return surfaceVm;
+    }
+
     [RelayCommand]
     public void CloseSurface(SurfaceViewModel? surface)
     {

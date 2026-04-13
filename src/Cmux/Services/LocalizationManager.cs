@@ -312,6 +312,18 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["cmux test"] = "cmux 테스트"
             ,["Notification check"] = "알림 확인"
             ,["If you see this in panel/toast, notifications are working."] = "패널/토스트에 이 메시지가 보이면 알림이 정상 동작합니다."
+            ,["Reset to Defaults"] = "기본값으로 초기화"
+            ,["Default Light"] = "기본 라이트"
+            ,["System"] = "시스템"
+            ,["cmuxw for Windows"] = "Windows용 cmuxw"
+            ,["A modern terminal multiplexer for AI coding agents on Windows. Includes split panes, workspaces, command palette, and browser automation-ready panels."] = "Windows 환경의 AI 코딩 에이전트를 위한 최신 터미널 멀티플렉서입니다. 분할 패널, 워크스페이스, 명령 팔레트, 브라우저 자동화 준비 패널을 포함합니다."
+            ,["Runtime: .NET 10"] = "런타임: .NET 10"
+            ,["Framework: WPF + CommunityToolkit.Mvvm"] = "프레임워크: WPF + CommunityToolkit.Mvvm"
+            ,["Config: %LOCALAPPDATA%\\cmux\\settings.json"] = "설정: %LOCALAPPDATA%\\cmux\\settings.json"
+            ,["Custom tool name is required."] = "사용자 도구 이름이 필요합니다."
+            ,["Custom tool command template is required."] = "사용자 도구 명령 템플릿이 필요합니다."
+            ,["MCP server name is required."] = "MCP 서버 이름이 필요합니다."
+            ,["MCP server command is required."] = "MCP 서버 명령이 필요합니다."
         },
         ["zh-CN"] = new Dictionary<string, string>(Cmp)
         {
@@ -611,6 +623,18 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["cmux test"] = "cmux 测试",
             ["Notification check"] = "通知检查",
             ["If you see this in panel/toast, notifications are working."] = "如果你在面板/通知中看到此消息，说明通知功能正常。"
+            ,["Reset to Defaults"] = "恢复默认"
+            ,["Default Light"] = "默认浅色"
+            ,["System"] = "系统"
+            ,["cmuxw for Windows"] = "Windows 版 cmuxw"
+            ,["A modern terminal multiplexer for AI coding agents on Windows. Includes split panes, workspaces, command palette, and browser automation-ready panels."] = "面向 Windows 上 AI 编码代理的现代终端复用器，包含分屏、工作区、命令面板和可扩展的浏览器自动化面板。"
+            ,["Runtime: .NET 10"] = "运行时：.NET 10"
+            ,["Framework: WPF + CommunityToolkit.Mvvm"] = "框架：WPF + CommunityToolkit.Mvvm"
+            ,["Config: %LOCALAPPDATA%\\cmux\\settings.json"] = "配置：%LOCALAPPDATA%\\cmux\\settings.json"
+            ,["Custom tool name is required."] = "自定义工具名称是必填项。"
+            ,["Custom tool command template is required."] = "自定义工具命令模板是必填项。"
+            ,["MCP server name is required."] = "MCP 服务器名称是必填项。"
+            ,["MCP server command is required."] = "MCP 服务器命令是必填项。"
         }
     };
 

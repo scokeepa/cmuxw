@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Cmux.Core.Config;
@@ -8,6 +9,7 @@ using Cmux.Core.IPC;
 using Cmux.Core.Models;
 using Cmux.Core.Services;
 using Cmux.Core.Terminal;
+using Cmux.Services;
 
 namespace Cmux.ViewModels;
 
@@ -19,6 +21,7 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     private readonly Dictionary<string, TerminalSession> _sessions = [];
     private readonly Dictionary<string, List<string>> _paneCommandHistory = [];
     private readonly Dictionary<string, string?> _paneShells = [];
+    private readonly Dictionary<string, long> _lastPromptParseTicksByPane = [];
     private readonly HashSet<string> _daemonPanes = [];
     private readonly HashSet<string> _daemonOutputLogged = [];
     private static readonly object _daemonWaitLock = new();
@@ -64,6 +67,9 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         }
     }
 
+    public bool IsBrowserSurface => Surface.BrowserPaneUrls.Count > 0;
+    private string? _lastClosedPaneWorkingDirectory;
+
     public SurfaceViewModel(Surface surface, string workspaceId, NotificationService notificationService)
     {
         Surface = surface;
@@ -87,6 +93,9 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         {
             if (leaf.PaneId != null)
             {
+                if (Surface.BrowserPaneUrls.ContainsKey(leaf.PaneId))
+                    continue;
+
                 Surface.PaneSnapshots.TryGetValue(leaf.PaneId, out var snapshot);
                 if (snapshot?.CommandHistory is { Count: > 0 })
                 {
@@ -181,6 +190,47 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     public TerminalSession? GetSession(string paneId)
     {
         return _sessions.GetValueOrDefault(paneId);
+    }
+
+    public bool IsBrowserPane(string paneId)
+    {
+        return Surface.BrowserPaneUrls.ContainsKey(paneId);
+    }
+
+    public string? GetBrowserPaneUrl(string paneId)
+    {
+        return Surface.BrowserPaneUrls.GetValueOrDefault(paneId);
+    }
+
+    public string? GetPrimaryBrowserUrl()
+    {
+        return Surface.BrowserPaneUrls.Values.FirstOrDefault();
+    }
+
+    public string? GetPrimaryBrowserPaneId()
+    {
+        return Surface.BrowserPaneUrls.Keys.FirstOrDefault();
+    }
+
+    public void SetBrowserPaneUrl(string paneId, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return;
+
+        if (_sessions.TryGetValue(paneId, out var existingSession))
+        {
+            if (_daemonPanes.Remove(paneId))
+                _ = App.DaemonClient.CloseSessionAsync(paneId);
+
+            existingSession.Dispose();
+            _sessions.Remove(paneId);
+            _paneCommandHistory.Remove(paneId);
+            _paneShells.Remove(paneId);
+        }
+
+        Surface.PaneSnapshots.Remove(paneId);
+        Surface.BrowserPaneUrls[paneId] = url.Trim();
+        OnPropertyChanged(nameof(IsBrowserSurface));
     }
 
     public string GetPaneTitle(string paneId, string? fallbackTitle)
@@ -421,6 +471,51 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         }
     }
 
+    private bool IsPromptParseDue(string paneId, long nowTicks)
+    {
+        const long minIntervalTicks = TimeSpan.TicksPerSecond / 2;
+        if (_lastPromptParseTicksByPane.TryGetValue(paneId, out var previous)
+            && nowTicks - previous < minIntervalTicks)
+        {
+            return false;
+        }
+
+        _lastPromptParseTicksByPane[paneId] = nowTicks;
+        return true;
+    }
+
+    private static bool TryResolvePromptWorkingDirectory(TerminalSession session, out string? workingDirectory)
+    {
+        workingDirectory = null;
+        var text = session.Buffer.ExportPlainText(maxScrollbackLines: 120);
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var lines = text.Replace("\r", "", StringComparison.Ordinal).Split('\n');
+        for (var idx = lines.Length - 1; idx >= 0; idx--)
+        {
+            var line = lines[idx].Trim();
+            if (line.Length == 0)
+                continue;
+
+            var psMatch = Regex.Match(line, @"^PS\s+(.+?)>\s*$", RegexOptions.IgnoreCase);
+            if (psMatch.Success)
+            {
+                workingDirectory = psMatch.Groups[1].Value.Trim();
+                return !string.IsNullOrWhiteSpace(workingDirectory);
+            }
+
+            var cmdMatch = Regex.Match(line, @"^([A-Za-z]:\\[^>]*)>\s*$");
+            if (cmdMatch.Success)
+            {
+                workingDirectory = cmdMatch.Groups[1].Value.Trim();
+                return !string.IsNullOrWhiteSpace(workingDirectory);
+            }
+        }
+
+        return false;
+    }
+
     private TerminalSession StartSession(string paneId, string? workingDirectory = null, PaneStateSnapshot? restoredState = null, string? shell = null)
     {
         var effectiveShell = shell ?? GetConfiguredShell();
@@ -592,6 +687,19 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
             if (OutputBurstStartTicks == 0)
                 OutputBurstStartTicks = now;
             LastOutputTicks = now;
+
+            if (!IsPromptParseDue(paneId, now))
+                return;
+
+            if (!TryResolvePromptWorkingDirectory(session, out var resolved))
+                return;
+
+            if (string.IsNullOrWhiteSpace(resolved))
+                return;
+
+            session.WorkingDirectory = resolved;
+            if (paneId == FocusedPaneId)
+                WorkingDirectoryChanged?.Invoke(resolved);
         };
 
         session.NotificationReceived += (title, subtitle, body) =>
@@ -648,7 +756,7 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         if (newChild.PaneId != null)
         {
             var currentSession = GetSession(FocusedPaneId);
-            var cwd = currentSession?.WorkingDirectory;
+            var cwd = currentSession?.WorkingDirectory ?? _lastClosedPaneWorkingDirectory;
             var effectiveShell = shell ?? _paneShells.GetValueOrDefault(FocusedPaneId);
             StartSession(newChild.PaneId, cwd, null, effectiveShell);
             FocusedPaneId = newChild.PaneId;
@@ -673,6 +781,10 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     {
         if (paneId == null) return;
 
+        // Keep at least one pane in a surface.
+        var leaves = RootNode.GetLeaves().ToList();
+        if (leaves.Count <= 1) return;
+
         CapturePaneTranscript(paneId, "pane-close");
 
         // Get adjacent pane before removal
@@ -682,6 +794,7 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         // Stop and remove the session
         if (_sessions.TryGetValue(paneId, out var session))
         {
+            _lastClosedPaneWorkingDirectory = session.WorkingDirectory;
             if (_daemonPanes.Remove(paneId))
                 _ = App.DaemonClient.CloseSessionAsync(paneId);
             session.Dispose();
@@ -690,12 +803,12 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 
         Surface.PaneCustomNames.Remove(paneId);
         Surface.PaneSnapshots.Remove(paneId);
+        Surface.BrowserPaneUrls.Remove(paneId);
+        BrowserPaneRegistry.Unregister(paneId);
         _paneCommandHistory.Remove(paneId);
         _paneShells.Remove(paneId);
-
-        // If this is the only pane, don't remove it
-        var leaves = RootNode.GetLeaves().ToList();
-        if (leaves.Count <= 1) return;
+        _lastPromptParseTicksByPane.Remove(paneId);
+        OnPropertyChanged(nameof(IsBrowserSurface));
 
         RootNode.Remove(paneId);
 
