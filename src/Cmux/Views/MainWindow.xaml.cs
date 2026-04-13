@@ -191,10 +191,10 @@ public partial class MainWindow : Window
         DaemonStatusDot.Fill = connected
             ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x34, 0xD3, 0x99)) // green
             : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x6B, 0x72, 0x80)); // gray
-        DaemonStatusText.Text = connected ? "Daemon" : "Local";
+        DaemonStatusText.Text = connected ? L.T("Daemon") : L.T("Local");
         DaemonStatusBorder.ToolTip = connected
-            ? "Connected to cmux-daemon — sessions persist across restarts"
-            : "Running locally — sessions will not persist";
+            ? L.T("Connected to cmux-daemon — sessions persist across restarts")
+            : L.T("Running locally — sessions will not persist");
     }
 
     private void UpdateWindowChrome()
@@ -205,7 +205,7 @@ public partial class MainWindow : Window
         WindowBorder.BorderThickness = maximized ? new Thickness(0) : new Thickness(1);
         // Update maximize/restore icon
         MaxRestoreIcon.Text = maximized ? "\uE923" : "\uE922";
-        MaxRestoreButton.ToolTip = maximized ? "Restore" : "Maximize";
+        MaxRestoreButton.ToolTip = maximized ? L.T("Restore") : L.T("Maximize");
         UpdateWindowClip();
     }
 
@@ -243,7 +243,10 @@ public partial class MainWindow : Window
         }
 
         if (e.PropertyName == nameof(MainViewModel.SelectedWorkspace))
+        {
             RefreshAgentThreads();
+            RequestTerminalFocusAfterNavigation();
+        }
     }
 
     private void OnAgentConversationStoreChanged()
@@ -276,38 +279,47 @@ public partial class MainWindow : Window
 
                 case AgentRuntimeUpdateType.UserMessage:
                     AppendAgentMessage("user", update.Message, update.CreatedAtUtc, "-", update.ThreadId);
-                    AgentStatusText.Text = "User message sent";
+                    AgentStatusText.Text = L.T("User message sent");
                     break;
 
                 case AgentRuntimeUpdateType.AssistantDelta:
                     AppendAssistantDelta(update.ThreadId, update.Message);
-                    AgentStatusText.Text = "Streaming response...";
+                    AgentStatusText.Text = L.T("Streaming response...");
                     break;
 
                 case AgentRuntimeUpdateType.AssistantCompleted:
                     FinalizeAssistantMessage(update.ThreadId, update.Message, update.CreatedAtUtc,
                         $"usage in:{update.InputTokens} out:{update.OutputTokens} total:{update.TotalTokens} · {update.Provider}/{update.Model}");
-                    AgentUsageText.Text = $"Usage: in {update.InputTokens} · out {update.OutputTokens} · total {update.TotalTokens}";
+                    AgentUsageText.Text = string.Format(L.T("Usage: in {0} · out {1} · total {2}"), update.InputTokens, update.OutputTokens, update.TotalTokens);
                     AgentContextText.Text = update.ContextBudgetTokens > 0
-                        ? $"Context: {update.EstimatedContextTokens}/{update.ContextBudgetTokens} tokens{(update.ContextNeedsCompaction ? " (near limit)" : "")}"
-                        : "Context: -";
-                    AgentStatusText.Text = "Response completed";
+                        ? string.Format(
+                            L.T("Context: {0}/{1} tokens{2}"),
+                            update.EstimatedContextTokens,
+                            update.ContextBudgetTokens,
+                            update.ContextNeedsCompaction ? L.T(" (near limit)") : string.Empty)
+                        : L.T("Context: -");
+                    AgentStatusText.Text = L.T("Response completed");
                     RefreshAgentThreads();
                     break;
 
                 case AgentRuntimeUpdateType.ContextMetrics:
                     AgentContextText.Text = update.ContextBudgetTokens > 0
-                        ? $"Context: {update.EstimatedContextTokens}/{update.ContextBudgetTokens} tokens{(update.ContextNeedsCompaction ? " (near limit)" : "")}{(update.CompactionApplied ? " · compacted" : "")}"
-                        : "Context: -";
+                        ? string.Format(
+                            L.T("Context: {0}/{1} tokens{2}{3}"),
+                            update.EstimatedContextTokens,
+                            update.ContextBudgetTokens,
+                            update.ContextNeedsCompaction ? L.T(" (near limit)") : string.Empty,
+                            update.CompactionApplied ? L.T(" · compacted") : string.Empty)
+                        : L.T("Context: -");
                     break;
 
                 case AgentRuntimeUpdateType.Error:
                     AppendAgentMessage("error", update.Message, update.CreatedAtUtc, "error", update.ThreadId);
-                    AgentStatusText.Text = $"Error: {update.Message}";
+                    AgentStatusText.Text = $"{L.T("Error")}: {update.Message}";
                     break;
 
                 case AgentRuntimeUpdateType.Status:
-                    AgentStatusText.Text = string.IsNullOrWhiteSpace(update.Message) ? "Idle" : update.Message;
+                    AgentStatusText.Text = string.IsNullOrWhiteSpace(update.Message) ? L.T("Idle") : update.Message;
                     break;
             }
         });
@@ -338,6 +350,7 @@ public partial class MainWindow : Window
                 ViewModel.SelectedWorkspace?.PreviousSurface();
             else
                 ViewModel.SelectedWorkspace?.NextSurface();
+            RequestTerminalFocusAfterNavigation();
             e.Handled = true;
             return;
         }
@@ -350,11 +363,13 @@ public partial class MainWindow : Window
                 case Key.Right:
                 case Key.Down:
                     ViewModel.SelectedWorkspace?.SelectedSurface?.FocusNextPane();
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 case Key.Left:
                 case Key.Up:
                     ViewModel.SelectedWorkspace?.SelectedSurface?.FocusPreviousPane();
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 case Key.H: // Open command history picker (Ctrl+Alt+H)
@@ -387,10 +402,12 @@ public partial class MainWindow : Window
                     return;
                 case Key.OemCloseBrackets: // Next surface (Ctrl+Shift+])
                     ViewModel.SelectedWorkspace?.NextSurface();
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 case Key.OemOpenBrackets: // Previous surface (Ctrl+Shift+[)
                     ViewModel.SelectedWorkspace?.PreviousSurface();
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 case Key.Z: // Zoom toggle (Ctrl+Shift+Z)
@@ -447,6 +464,7 @@ public partial class MainWindow : Window
                     return;
                 case Key.T: // New surface
                     ViewModel.SelectedWorkspace?.CreateNewSurface();
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 case Key.W: // Close surface
@@ -457,20 +475,22 @@ public partial class MainWindow : Window
                     return;
                 case Key.D: // Split right
                     ViewModel.SelectedWorkspace?.SelectedSurface?.SplitRight();
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 // Workspace 1-8
-                case Key.D1: ViewModel.SelectWorkspace(0); e.Handled = true; return;
-                case Key.D2: ViewModel.SelectWorkspace(1); e.Handled = true; return;
-                case Key.D3: ViewModel.SelectWorkspace(2); e.Handled = true; return;
-                case Key.D4: ViewModel.SelectWorkspace(3); e.Handled = true; return;
-                case Key.D5: ViewModel.SelectWorkspace(4); e.Handled = true; return;
-                case Key.D6: ViewModel.SelectWorkspace(5); e.Handled = true; return;
-                case Key.D7: ViewModel.SelectWorkspace(6); e.Handled = true; return;
-                case Key.D8: ViewModel.SelectWorkspace(7); e.Handled = true; return;
+                case Key.D1: ViewModel.SelectWorkspace(0); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D2: ViewModel.SelectWorkspace(1); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D3: ViewModel.SelectWorkspace(2); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D4: ViewModel.SelectWorkspace(3); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D5: ViewModel.SelectWorkspace(4); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D6: ViewModel.SelectWorkspace(5); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D7: ViewModel.SelectWorkspace(6); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
+                case Key.D8: ViewModel.SelectWorkspace(7); RequestTerminalFocusAfterNavigation(); e.Handled = true; return;
                 case Key.D9: // Last workspace
                     if (ViewModel.Workspaces.Count > 0)
                         ViewModel.SelectWorkspace(ViewModel.Workspaces.Count - 1);
+                    RequestTerminalFocusAfterNavigation();
                     e.Handled = true;
                     return;
                 case Key.OemComma: // Settings (Ctrl+,)
@@ -639,8 +659,8 @@ public partial class MainWindow : Window
     private void MenuAbout_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show(
-            "cmux for Windows\nA terminal multiplexer optimized for modern workflows.",
-            "About cmux",
+            L.T("cmux for Windows\nA terminal multiplexer optimized for modern workflows."),
+            L.T("About cmux"),
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
@@ -1002,9 +1022,9 @@ public partial class MainWindow : Window
             {
                 ThreadId = threadId,
                 Role = "assistant",
-                Header = $"assistant · {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                Header = $"{L.T("assistant")} · {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
                 Content = "",
-                Meta = "streaming...",
+                Meta = L.T("streaming..."),
                 CreatedAtUtc = DateTime.UtcNow,
             };
             _streamingAssistantByThread[threadId] = message;
@@ -1036,7 +1056,7 @@ public partial class MainWindow : Window
 
         if (_streamingAssistantByThread.TryGetValue(threadId, out var message))
         {
-            message.Header = $"assistant · {createdAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+            message.Header = $"{L.T("assistant")} · {createdAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
             message.Content = string.IsNullOrWhiteSpace(finalText) ? message.Content : finalText;
             message.Meta = meta;
             message.CreatedAtUtc = createdAtUtc;
@@ -1048,7 +1068,7 @@ public partial class MainWindow : Window
             {
                 ThreadId = threadId,
                 Role = "assistant",
-                Header = $"assistant · {createdAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}",
+                Header = $"{L.T("assistant")} · {createdAtUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}",
                 Content = finalText ?? "",
                 Meta = meta,
                 CreatedAtUtc = createdAtUtc,
@@ -1089,32 +1109,32 @@ public partial class MainWindow : Window
     {
         return
         [
-            new() { Id = "new-workspace", Label = "New Workspace", Icon = "\uE710", Shortcut = "Ctrl+N", Category = "Workspace", Execute = () => ViewModel.CreateNewWorkspace() },
-            new() { Id = "new-surface", Label = "New Surface", Icon = "\uE710", Shortcut = "Ctrl+T", Category = "Surface", Execute = () => ViewModel.SelectedWorkspace?.CreateNewSurface() },
-            new() { Id = "close-surface", Label = "Close Surface", Icon = "\uE711", Shortcut = "Ctrl+W", Category = "Surface", Execute = () => { var s = ViewModel.SelectedWorkspace?.SelectedSurface; if (s != null) ViewModel.SelectedWorkspace?.CloseSurface(s); } },
-            new() { Id = "close-workspace", Label = "Close Workspace", Icon = "\uE711", Shortcut = "Ctrl+Shift+W", Category = "Workspace", Execute = () => ViewModel.CloseWorkspace(ViewModel.SelectedWorkspace) },
-            new() { Id = "split-right", Label = "Split Right", Icon = "\uE26B", Shortcut = "Ctrl+D", Category = "Pane", Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitRight() },
-            new() { Id = "split-down", Label = "Split Down", Icon = "\uE74B", Shortcut = "Ctrl+Shift+D", Category = "Pane", Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitDown() },
-            new() { Id = "toggle-sidebar", Label = "Toggle Sidebar", Icon = "\uE700", Shortcut = "Ctrl+B", Category = "View", Execute = () => ViewModel.ToggleSidebar() },
-            new() { Id = "notifications", Label = "Notifications", Icon = "\uEA8F", Shortcut = "Ctrl+I", Category = "View", Execute = () => ViewModel.ToggleNotificationPanel() },
-            new() { Id = "test-notification", Label = "Test Notification", Icon = "\uE7F4", Category = "View", Execute = ShowTestNotification },
-            new() { Id = "open-logs", Label = "Open Command Logs", Icon = "\uE7BA", Shortcut = "Ctrl+Shift+L", Category = "Logs", Execute = OpenLogsWindow },
-            new() { Id = "open-session-vault", Label = "Open Session Vault", Icon = "\uE8D1", Shortcut = "Ctrl+Shift+V", Category = "Logs", Execute = OpenSessionVault },
-            new() { Id = "open-command-history", Label = "Open Command History", Icon = "\uE81C", Shortcut = "Ctrl+Alt+H", Category = "History", Execute = OpenCommandHistoryPicker },
-            new() { Id = "insert-last-command", Label = "Insert Last Command", Icon = "\uE8A7", Shortcut = "Ctrl+Shift+H", Category = "History", Execute = InsertLastCommandFromHistory },
-            new() { Id = "search", Label = "Search", Icon = "\uE721", Shortcut = "Ctrl+Shift+F", Category = "View", Execute = () => ToggleSearch() },
-            new() { Id = "toggle-agent-chat", Label = "Toggle Agent Chat", Icon = "\uE11B", Shortcut = "Ctrl+Shift+A", Category = "View", Execute = ToggleAgentChat },
-            new() { Id = "zoom-pane", Label = "Zoom Pane", Icon = "\uE740", Shortcut = "Ctrl+Shift+Z", Category = "Pane", Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.ToggleZoom() },
-            new() { Id = "focus-next", Label = "Focus Next Pane", Icon = "\uE76C", Shortcut = "Ctrl+Alt+Right", Category = "Pane", Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.FocusNextPane() },
-            new() { Id = "focus-prev", Label = "Focus Previous Pane", Icon = "\uE76B", Shortcut = "Ctrl+Alt+Left", Category = "Pane", Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.FocusPreviousPane() },
-            new() { Id = "next-surface", Label = "Next Surface", Icon = "\uE76C", Shortcut = "Ctrl+Tab", Category = "Surface", Execute = () => ViewModel.SelectedWorkspace?.NextSurface() },
-            new() { Id = "prev-surface", Label = "Previous Surface", Icon = "\uE76B", Shortcut = "Ctrl+Shift+Tab", Category = "Surface", Execute = () => ViewModel.SelectedWorkspace?.PreviousSurface() },
-            new() { Id = "settings", Label = "Settings", Icon = "\uE713", Shortcut = "Ctrl+,", Category = "App", Execute = () => OpenSettings() },
-            new() { Id = "equalize", Label = "Equalize Panes", Icon = "\uE9D5", Category = "Pane", Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.EqualizePanes() },
-            new() { Id = "layout-2col", Label = "Layout: 2 Columns", Icon = "\uE745", Category = "Layout", Execute = () => ApplyLayout(2, 1) },
-            new() { Id = "layout-3col", Label = "Layout: 3 Columns", Icon = "\uE745", Category = "Layout", Execute = () => ApplyLayout(3, 1) },
-            new() { Id = "layout-grid", Label = "Layout: Grid 2x2", Icon = "\uF0E2", Category = "Layout", Execute = () => ApplyLayout(2, 2) },
-            new() { Id = "layout-main-stack", Label = "Layout: Main + Stack", Icon = "\uE745", Category = "Layout", Execute = () => ApplyMainStackLayout() },
+            new() { Id = "new-workspace", Label = L.T("New Workspace"), Icon = "\uE710", Shortcut = "Ctrl+N", Category = L.T("Workspace"), Execute = () => ViewModel.CreateNewWorkspace() },
+            new() { Id = "new-surface", Label = L.T("New Surface"), Icon = "\uE710", Shortcut = "Ctrl+T", Category = L.T("Surface"), Execute = () => ViewModel.SelectedWorkspace?.CreateNewSurface() },
+            new() { Id = "close-surface", Label = L.T("Close Surface"), Icon = "\uE711", Shortcut = "Ctrl+W", Category = L.T("Surface"), Execute = () => { var s = ViewModel.SelectedWorkspace?.SelectedSurface; if (s != null) ViewModel.SelectedWorkspace?.CloseSurface(s); } },
+            new() { Id = "close-workspace", Label = L.T("Close Workspace"), Icon = "\uE711", Shortcut = "Ctrl+Shift+W", Category = L.T("Workspace"), Execute = () => ViewModel.CloseWorkspace(ViewModel.SelectedWorkspace) },
+            new() { Id = "split-right", Label = L.T("Split Right"), Icon = "\uE26B", Shortcut = "Ctrl+D", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitRight() },
+            new() { Id = "split-down", Label = L.T("Split Down"), Icon = "\uE74B", Shortcut = "Ctrl+Shift+D", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.SplitDown() },
+            new() { Id = "toggle-sidebar", Label = L.T("Toggle Sidebar"), Icon = "\uE700", Shortcut = "Ctrl+B", Category = L.T("View"), Execute = () => ViewModel.ToggleSidebar() },
+            new() { Id = "notifications", Label = L.T("Notifications"), Icon = "\uEA8F", Shortcut = "Ctrl+I", Category = L.T("View"), Execute = () => ViewModel.ToggleNotificationPanel() },
+            new() { Id = "test-notification", Label = L.T("Test Notification"), Icon = "\uE7F4", Category = L.T("View"), Execute = ShowTestNotification },
+            new() { Id = "open-logs", Label = L.T("Open Command Logs"), Icon = "\uE7BA", Shortcut = "Ctrl+Shift+L", Category = L.T("Logs"), Execute = OpenLogsWindow },
+            new() { Id = "open-session-vault", Label = L.T("Open Session Vault"), Icon = "\uE8D1", Shortcut = "Ctrl+Shift+V", Category = L.T("Logs"), Execute = OpenSessionVault },
+            new() { Id = "open-command-history", Label = L.T("Open Command History"), Icon = "\uE81C", Shortcut = "Ctrl+Alt+H", Category = L.T("History"), Execute = OpenCommandHistoryPicker },
+            new() { Id = "insert-last-command", Label = L.T("Insert Last Command"), Icon = "\uE8A7", Shortcut = "Ctrl+Shift+H", Category = L.T("History"), Execute = InsertLastCommandFromHistory },
+            new() { Id = "search", Label = L.T("Search"), Icon = "\uE721", Shortcut = "Ctrl+Shift+F", Category = L.T("View"), Execute = () => ToggleSearch() },
+            new() { Id = "toggle-agent-chat", Label = L.T("Toggle Agent Chat"), Icon = "\uE11B", Shortcut = "Ctrl+Shift+A", Category = L.T("View"), Execute = ToggleAgentChat },
+            new() { Id = "zoom-pane", Label = L.T("Zoom Pane"), Icon = "\uE740", Shortcut = "Ctrl+Shift+Z", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.ToggleZoom() },
+            new() { Id = "focus-next", Label = L.T("Focus Next Pane"), Icon = "\uE76C", Shortcut = "Ctrl+Alt+Right", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.FocusNextPane() },
+            new() { Id = "focus-prev", Label = L.T("Focus Previous Pane"), Icon = "\uE76B", Shortcut = "Ctrl+Alt+Left", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.FocusPreviousPane() },
+            new() { Id = "next-surface", Label = L.T("Next Surface"), Icon = "\uE76C", Shortcut = "Ctrl+Tab", Category = L.T("Surface"), Execute = () => ViewModel.SelectedWorkspace?.NextSurface() },
+            new() { Id = "prev-surface", Label = L.T("Previous Surface"), Icon = "\uE76B", Shortcut = "Ctrl+Shift+Tab", Category = L.T("Surface"), Execute = () => ViewModel.SelectedWorkspace?.PreviousSurface() },
+            new() { Id = "settings", Label = L.T("Settings"), Icon = "\uE713", Shortcut = "Ctrl+,", Category = L.T("App"), Execute = () => OpenSettings() },
+            new() { Id = "equalize", Label = L.T("Equalize Panes"), Icon = "\uE9D5", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.EqualizePanes() },
+            new() { Id = "layout-2col", Label = L.T("Layout: 2 Columns"), Icon = "\uE745", Category = L.T("Layout"), Execute = () => ApplyLayout(2, 1) },
+            new() { Id = "layout-3col", Label = L.T("Layout: 3 Columns"), Icon = "\uE745", Category = L.T("Layout"), Execute = () => ApplyLayout(3, 1) },
+            new() { Id = "layout-grid", Label = L.T("Layout: Grid 2x2"), Icon = "\uF0E2", Category = L.T("Layout"), Execute = () => ApplyLayout(2, 2) },
+            new() { Id = "layout-main-stack", Label = L.T("Layout: Main + Stack"), Icon = "\uE745", Category = L.T("Layout"), Execute = () => ApplyMainStackLayout() },
         ];
     }
 
@@ -1193,8 +1213,17 @@ public partial class MainWindow : Window
 
     private void FocusTerminal()
     {
-        // Return focus to the active terminal pane
-        ContentArea.Focus();
+        if (!SplitPaneContainerControl.FocusActivePane())
+            ContentArea.Focus();
+    }
+
+    private void RequestTerminalFocusAfterNavigation()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!SplitPaneContainerControl.FocusActivePane())
+                ContentArea.Focus();
+        }, DispatcherPriority.Input);
     }
 
     private void RefreshSurfaceUiState()
@@ -1206,7 +1235,7 @@ public partial class MainWindow : Window
         {
             PaneCountText.Text = "0 panes";
             ToolbarZoomIcon.Text = "\uE740";
-            ToolbarZoomButton.ToolTip = "Zoom Pane (Ctrl+Shift+Z)";
+            ToolbarZoomButton.ToolTip = $"{L.T("Zoom Pane")} (Ctrl+Shift+Z)";
             return;
         }
 
@@ -1217,8 +1246,8 @@ public partial class MainWindow : Window
 
         ToolbarZoomIcon.Text = surface.IsZoomed ? "\uE73F" : "\uE740";
         ToolbarZoomButton.ToolTip = surface.IsZoomed
-            ? "Unzoom Pane (Ctrl+Shift+Z)"
-            : "Zoom Pane (Ctrl+Shift+Z)";
+            ? $"{L.T("Unzoom Pane")} (Ctrl+Shift+Z)"
+            : $"{L.T("Zoom Pane")} (Ctrl+Shift+Z)";
     }
 
     // --- Search handling ---
@@ -1354,9 +1383,9 @@ public partial class MainWindow : Window
             workspaceId,
             surfaceId,
             paneId,
-            "cmux test",
-            "Notification check",
-            "If you see this in panel/toast, notifications are working.",
+            L.T("cmux test"),
+            L.T("Notification check"),
+            L.T("If you see this in panel/toast, notifications are working."),
             Cmux.Core.Models.NotificationSource.Cli);
     }
 
@@ -1381,7 +1410,7 @@ public partial class MainWindow : Window
         var history = surface.GetCommandHistory(paneId);
         if (history.Count == 0)
         {
-            MessageBox.Show("No command history found yet for this pane.", "History", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(L.T("No command history found yet for this pane."), L.T("History"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -1396,7 +1425,7 @@ public partial class MainWindow : Window
             })
         {
             Owner = this,
-            Title = $"Command History · Pane {paneLabel}",
+            Title = $"{L.T("Command History")} · {L.T("Pane")} {paneLabel}",
         };
 
         window.ShowDialog();
@@ -1411,7 +1440,7 @@ public partial class MainWindow : Window
         var history = surface.GetCommandHistory(paneId);
         if (history.Count == 0)
         {
-            MessageBox.Show("No command history found yet for this pane.", "History", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(L.T("No command history found yet for this pane."), L.T("History"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -1446,7 +1475,7 @@ public partial class MainWindow : Window
         _selectedAgentThreadId = thread.Id;
         RefreshAgentThreads();
         SelectAgentThreadInList(thread.Id);
-        AgentStatusText.Text = "New thread created";
+        AgentStatusText.Text = L.T("New thread created");
     }
 
     private void AgentThreadsList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -1506,7 +1535,7 @@ public partial class MainWindow : Window
         var context = GetCurrentPaneContext();
         if (context == null)
         {
-            AgentStatusText.Text = "No active pane selected";
+            AgentStatusText.Text = L.T("No active pane selected");
             return;
         }
 
@@ -1544,12 +1573,12 @@ public partial class MainWindow : Window
 
         if (!accepted)
         {
-            AgentStatusText.Text = "Agent did not accept the prompt";
+            AgentStatusText.Text = L.T("Agent did not accept the prompt");
             return;
         }
 
         AgentPromptBox.Text = "";
-        AgentStatusText.Text = "Prompt sent";
+        AgentStatusText.Text = L.T("Prompt sent");
         RefreshAgentThreads();
         if (!string.IsNullOrWhiteSpace(threadId))
             SelectAgentThreadInList(threadId);

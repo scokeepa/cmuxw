@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Cmux.Core.Models;
 using Cmux.Core.Services;
+using Cmux.Services;
 using Cmux.ViewModels;
 
 namespace Cmux.Views;
@@ -127,7 +128,7 @@ public partial class SessionVaultWindow : Window
             .ToList();
 
         EntriesList.ItemsSource = views;
-        SummaryText.Text = views.Count == 1 ? "1 capture" : $"{views.Count} captures";
+        SummaryText.Text = views.Count == 1 ? L.T("1 capture") : string.Format(L.T("{0} captures"), views.Count);
 
         if (views.Count > 0)
             EntriesList.SelectedIndex = 0;
@@ -137,7 +138,7 @@ public partial class SessionVaultWindow : Window
 
     private void ShowNoSelection()
     {
-        MetaTitleText.Text = "Select a capture";
+        MetaTitleText.Text = L.T("Select a capture");
         MetaInfoText.Text = "";
         TranscriptText.Text = "";
     }
@@ -149,8 +150,8 @@ public partial class SessionVaultWindow : Window
         var surface = ResolveSurfaceName(e.SurfaceId);
         var pane = ShortId(e.PaneId);
 
-        MetaTitleText.Text = $"{workspace} / {surface} / Pane {pane}";
-        MetaInfoText.Text = $"{e.CapturedAt.ToLocalTime():yyyy-MM-dd HH:mm:ss} · reason: {e.Reason} · cwd: {(string.IsNullOrWhiteSpace(e.WorkingDirectory) ? "-" : e.WorkingDirectory)}";
+        MetaTitleText.Text = $"{workspace} / {surface} / {L.T("Pane")} {pane}";
+        MetaInfoText.Text = $"{e.CapturedAt.ToLocalTime():yyyy-MM-dd HH:mm:ss} · {L.T("reason")}: {e.Reason} · {L.T("cwd")}: {(string.IsNullOrWhiteSpace(e.WorkingDirectory) ? "-" : e.WorkingDirectory)}";
         TranscriptText.Text = App.CommandLogService.LoadTerminalTranscriptContent(e.FilePath);
         TranscriptText.ScrollToHome();
     }
@@ -178,7 +179,7 @@ public partial class SessionVaultWindow : Window
         }
         catch
         {
-            MessageBox.Show($"Session vault folder: {dir}", "Session Vault", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show($"{L.T("Session vault folder")}: {dir}", L.T("Session Vault"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -217,7 +218,7 @@ public partial class SessionVaultWindow : Window
         }
         catch
         {
-            MessageBox.Show(selected.Entry.FilePath, "Session Vault", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(selected.Entry.FilePath, L.T("Session Vault"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 

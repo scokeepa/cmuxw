@@ -1,13 +1,11 @@
-# Contributing to kwcmux
+# Contributing to cmuxw
 
 ## Collaboration model
 
 - Public repository with protected `master`
 - No direct push to `master` for collaborators
 - All changes go through Pull Requests
-- At least 1 approval is required before merge
-- Code owner review is required
-
+- 
 ## Permission policy (read/write granularity)
 
 - `Read/Triage`: bug triage, issue labeling, discussion, reproduction

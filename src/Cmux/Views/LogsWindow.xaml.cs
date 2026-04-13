@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Cmux.Core.Models;
 using Cmux.Core.Services;
+using Cmux.Services;
 using Cmux.ViewModels;
 
 namespace Cmux.Views;
@@ -189,17 +190,17 @@ public partial class LogsWindow : Window
 
         _suppressFilterEvents = true;
 
-        WorkspaceFilterCombo.ItemsSource = (new[] { new FilterOption { Id = string.Empty, Label = "All workspaces" } })
+        WorkspaceFilterCombo.ItemsSource = (new[] { new FilterOption { Id = string.Empty, Label = L.T("All workspaces") } })
             .Concat(workspaceOptions)
             .ToList();
         WorkspaceFilterCombo.SelectedValue = workspaceOptions.Any(x => x.Id == previousWorkspace) ? previousWorkspace : string.Empty;
 
-        SurfaceFilterCombo.ItemsSource = (new[] { new FilterOption { Id = string.Empty, Label = "All surfaces" } })
+        SurfaceFilterCombo.ItemsSource = (new[] { new FilterOption { Id = string.Empty, Label = L.T("All surfaces") } })
             .Concat(surfaceOptions)
             .ToList();
         SurfaceFilterCombo.SelectedValue = surfaceOptions.Any(x => x.Id == previousSurface) ? previousSurface : string.Empty;
 
-        PaneFilterCombo.ItemsSource = (new[] { new FilterOption { Id = string.Empty, Label = "All panes" } })
+        PaneFilterCombo.ItemsSource = (new[] { new FilterOption { Id = string.Empty, Label = L.T("All panes") } })
             .Concat(paneOptions)
             .ToList();
         PaneFilterCombo.SelectedValue = paneOptions.Any(x => x.Id == previousPane) ? previousPane : string.Empty;
@@ -258,8 +259,8 @@ public partial class LogsWindow : Window
 
         EntriesList.ItemsSource = filtered;
         SummaryText.Text = filtered.Count == _entriesForDate.Count
-            ? (filtered.Count == 1 ? "1 entry" : $"{filtered.Count} entries")
-            : $"{filtered.Count} / {_entriesForDate.Count} entries";
+            ? (filtered.Count == 1 ? L.T("1 entry") : string.Format(L.T("{0} entries"), filtered.Count))
+            : string.Format(L.T("{0} / {1} entries"), filtered.Count, _entriesForDate.Count);
 
         if (filtered.Count > 0)
             EntriesList.SelectedIndex = 0;
@@ -276,7 +277,7 @@ public partial class LogsWindow : Window
         var surface = ownerVm?.SelectedWorkspace?.SelectedSurface;
         if (surface?.FocusedPaneId is not string paneId)
         {
-            MessageBox.Show("No focused pane available.", "Logs", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(L.T("No focused pane available."), L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information);
             return false;
         }
 
@@ -349,7 +350,7 @@ public partial class LogsWindow : Window
         }
         catch
         {
-            MessageBox.Show($"Logs folder: {dir}", "Logs", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show($"{L.T("Logs folder")}: {dir}", L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -366,7 +367,7 @@ public partial class LogsWindow : Window
         }
         catch
         {
-            MessageBox.Show($"Terminal captures folder: {dir}", "Logs", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show($"{L.T("Terminal captures folder")}: {dir}", L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 

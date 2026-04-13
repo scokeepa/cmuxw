@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Cmux.Core.Models;
+using Cmux.Services;
 
 namespace Cmux.Controls;
 
@@ -139,7 +140,7 @@ public partial class SnippetPicker : UserControl
         var content = NewSnippetContent.Text.Trim();
         if (string.IsNullOrWhiteSpace(content))
         {
-            MessageBox.Show("Snippet command/content cannot be empty.", "Snippet", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(L.T("Snippet command/content cannot be empty."), L.T("Snippet"), MessageBoxButton.OK, MessageBoxImage.Information);
             NewSnippetContent.Focus();
             return;
         }
@@ -150,7 +151,7 @@ public partial class SnippetPicker : UserControl
 
         var category = NewSnippetCategory.Text.Trim();
         if (string.IsNullOrWhiteSpace(category))
-            category = "Custom";
+            category = L.T("Custom");
 
         if (!string.IsNullOrWhiteSpace(_editingSnippetId))
         {
@@ -172,7 +173,7 @@ public partial class SnippetPicker : UserControl
                 Content = content,
                 Category = category,
                 Tags = [],
-                Description = "User snippet",
+                Description = L.T("User snippet"),
                 IsFavorite = false,
             };
 
@@ -209,8 +210,8 @@ public partial class SnippetPicker : UserControl
         if (snippet == null) return;
 
         _editingSnippetId = snippet.Id;
-        EditorTitle.Text = "Edit snippet";
-        SaveSnippetButton.Content = "Update Snippet";
+        EditorTitle.Text = L.T("Edit snippet");
+        SaveSnippetButton.Content = L.T("Update Snippet");
         NewSnippetPanel.Visibility = Visibility.Visible;
 
         NewSnippetName.Text = snippet.Name;
@@ -229,8 +230,8 @@ public partial class SnippetPicker : UserControl
         if (snippet == null) return;
 
         var result = MessageBox.Show(
-            $"Delete snippet '{snippet.Name}'?",
-            "Delete Snippet",
+            string.Format(L.T("Delete snippet '{0}'?"), snippet.Name),
+            L.T("Delete Snippet"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
@@ -250,12 +251,12 @@ public partial class SnippetPicker : UserControl
     private void ShowNewSnippetEditor()
     {
         _editingSnippetId = null;
-        EditorTitle.Text = "New snippet";
-        SaveSnippetButton.Content = "Save Snippet";
+        EditorTitle.Text = L.T("New snippet");
+        SaveSnippetButton.Content = L.T("Save Snippet");
         NewSnippetPanel.Visibility = Visibility.Visible;
 
         NewSnippetName.Text = string.Empty;
-        NewSnippetCategory.Text = "Custom";
+        NewSnippetCategory.Text = L.T("Custom");
         NewSnippetContent.Text = SearchBox.Text.Trim();
 
         NewSnippetName.Focus();

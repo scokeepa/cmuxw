@@ -2,6 +2,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Cmux.Services;
 
 namespace Cmux.Views;
 
@@ -55,7 +56,7 @@ public partial class HistoryWindow : Window
             .ToList();
 
         EntriesList.ItemsSource = entries;
-        SummaryText.Text = entries.Count == 1 ? "1 command" : $"{entries.Count} commands";
+        SummaryText.Text = entries.Count == 1 ? L.T("1 command") : string.Format(L.T("{0} commands"), entries.Count);
 
         if (entries.Count > 0 && EntriesList.SelectedIndex < 0)
             EntriesList.SelectedIndex = 0;

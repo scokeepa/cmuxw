@@ -607,6 +607,23 @@
                         <TextBlock Text="Behavior" FontSize="18" FontWeight="SemiBold"
                                    Foreground="{StaticResource ForegroundBrush}" Margin="0,0,0,20" />
 
+                        <!-- UI Language -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Language" Style="{StaticResource SectionLabel}" />
+                            <ComboBox x:Name="LanguageCombo" Grid.Column="1"
+                                      Width="220"
+                                      HorizontalAlignment="Left"
+                                      Style="{StaticResource SettingsCombo}">
+                                <ComboBoxItem Content="English" Tag="en" />
+                                <ComboBoxItem Content="Korean" Tag="ko" />
+                                <ComboBoxItem Content="Chinese (Simplified)" Tag="zh-CN" />
+                            </ComboBox>
+                        </Grid>
+
                         <!-- Restore Session -->
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>

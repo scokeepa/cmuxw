@@ -1,6 +1,6 @@
-# CLI Compatibility (manafow-ai/cmux)
+# CLI Compatibility (manaflow-ai/cmux)
 
-This document tracks compatibility between upstream `manafow-ai/cmux` command style and this Windows implementation.
+This document tracks compatibility between upstream `manaflow-ai/cmux` command style and cmuxw (this Windows implementation).
 
 ## Fully supported aliases
 

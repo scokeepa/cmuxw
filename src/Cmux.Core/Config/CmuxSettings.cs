@@ -6,6 +6,11 @@ namespace Cmux.Core.Config;
 /// </summary>
 public class CmuxSettings
 {
+    // ── Localization ────────────────────────────────────────────
+
+    // Supported: en | ko | zh-CN
+    public string UiLanguage { get; set; } = "en";
+
     // ── Appearance ──────────────────────────────────────────────
 
     public string FontFamily { get; set; } = "Cascadia Code";

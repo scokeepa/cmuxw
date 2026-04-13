@@ -2,8 +2,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Tag,
 
-    [string]$AssetPath = "publish/kwcmux-win-x64.zip",
-    [string]$Repo = "scokeepa/kwcmux",
+    [string]$AssetPath = "publish/cmuxw-win-x64.zip",
+    [string]$Repo = "scokeepa/cmuxw",
     [string]$TargetBranch = "master",
 
     [switch]$UpdateExisting,
