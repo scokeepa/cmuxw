@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.3 - 2026-04-14
+
+- Hardened named-pipe CLI transport so connect/write/read cannot hang indefinitely on Windows.
+- Added orchestrator-oriented CLI commands and output contracts (`tree`, `identify`, `capture-pane`, buffer paste/set, `display-message`, `claude-hook`, `log`, `browser screenshot`) with safe fallbacks when the GUI is unreachable.
+- Extended `send-key` compatibility mapping and aligned `read-screen` / `capture-pane` plain-text defaults with watcher-pack expectations.
+- Added `scripts/verify-cli-compat.ps1` to automate DoD checks against a running `cmuxw` instance.
+- Updated `docs/CLI_COMPAT.md` for the expanded command surface.
+- Bumped version metadata to `0.1.3` across app, CLI, and agent runtime reporting.
+
 ## v0.1.2 - 2026-04-13
 
 - Added browser surface MVP and `cmux browser` command set.

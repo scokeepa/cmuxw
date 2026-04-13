@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Text.Json;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -43,6 +44,8 @@ public partial class MainViewModel : ObservableObject
     private double _agentPanelWidth = 380;
 
     private readonly NotificationService _notificationService;
+    private readonly Dictionary<string, string> _namedBuffers = new(StringComparer.Ordinal);
+    private string _defaultBuffer = "";
 
     public NotificationService NotificationService => _notificationService;
 
@@ -454,10 +457,19 @@ public partial class MainViewModel : ObservableObject
                 "BROWSER.SELECT" => HandleBrowserSelect(args),
                 "BROWSER.CLOSE" => HandleBrowserClose(args),
                 "BROWSER.SNAPSHOT" => HandleBrowserSnapshot(args),
+                "BROWSER.SCREENSHOT" => HandleBrowserScreenshot(args),
                 "BROWSER.CLICK" => HandleBrowserClick(args),
                 "BROWSER.FILL" => HandleBrowserFill(args),
                 "BROWSER.TYPE" => HandleBrowserType(args),
                 "BROWSER.EVAL" => HandleBrowserEval(args),
+                "TREE.LIST" => HandleTreeList(args),
+                "IDENTIFY" => HandleIdentify(args),
+                "CAPTURE.PANE" => HandleCapturePane(args),
+                "BUFFER.SET" => HandleSetBuffer(args),
+                "BUFFER.PASTE" => HandlePasteBuffer(args),
+                "DISPLAY.MESSAGE" => HandleDisplayMessage(args),
+                "CLAUDE.HOOK" => HandleClaudeHook(args),
+                "LOG.EVENT" => HandleLogEvent(args),
                 "SET.STATUS" => HandleSetStatus(args),
                 "TRIGGER.FLASH" => HandleTriggerFlash(args),
                 "STATUS" => HandleStatus(),
@@ -903,7 +915,8 @@ public partial class MainViewModel : ObservableObject
         if (args.TryGetValue("maxChars", out var charsRaw) && int.TryParse(charsRaw, out var parsedChars))
             maxChars = Math.Clamp(parsedChars, 512, 200000);
 
-        var allText = session.Buffer.ExportPlainText(maxScrollbackLines: 20000);
+        var includeScrollback = ParseBoolArg(args.GetValueOrDefault("scrollback"), defaultValue: false);
+        var allText = session.Buffer.ExportPlainText(maxScrollbackLines: includeScrollback ? 20000 : 0);
         var tailText = TailLines(allText, lines);
         if (tailText.Length > maxChars)
             tailText = "..." + tailText[^maxChars..];
@@ -1239,11 +1252,236 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private string HandleBrowserScreenshot(Dictionary<string, string> args)
+    {
+        if (!TryResolveBrowserControl(args, out var workspace, out var surface, out var paneId, out var browser, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        var outPath = (args.GetValueOrDefault("out") ?? args.GetValueOrDefault("path") ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(outPath))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: out" });
+
+        var fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(outPath));
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+
+        browser.CaptureScreenshotAsync(fullPath).GetAwaiter().GetResult();
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            browserId = surface.Surface.Id,
+            paneId,
+            outPath = fullPath,
+            url = browser.GetCurrentUrl(),
+        });
+    }
+
+    private string HandleTreeList(Dictionary<string, string> args)
+    {
+        var includeAll = ParseBoolArg(args.GetValueOrDefault("all"), defaultValue: true);
+        var asJson = ParseBoolArg(args.GetValueOrDefault("json"), defaultValue: false);
+        var targets = includeAll
+            ? Workspaces.ToList()
+            : (SelectedWorkspace != null ? [SelectedWorkspace] : Workspaces.Take(1).ToList());
+
+        var treeNodes = targets.Select((workspace, workspaceIdx) =>
+        {
+            var workspaceRef = $"workspace:{workspaceIdx + 1}";
+            var surfaces = workspace.Surfaces.Select((surface, surfaceIdx) => new
+            {
+                refId = $"surface:{surfaceIdx + 1}",
+                id = surface.Surface.Id,
+                name = surface.Name,
+                selected = workspace.SelectedSurface == surface,
+                isBrowser = surface.IsBrowserSurface,
+            }).ToList();
+
+            return new
+            {
+                refId = workspaceRef,
+                id = workspace.Workspace.Id,
+                name = workspace.Name,
+                selected = workspace == SelectedWorkspace,
+                surfaces,
+            };
+        }).ToList();
+
+        if (asJson)
+            return JsonSerializer.Serialize(new { ok = true, workspaces = treeNodes });
+
+        var lines = new List<string>();
+        foreach (var workspace in treeNodes)
+        {
+            lines.Add($"{workspace.refId} \"{workspace.name}\"");
+            foreach (var surface in workspace.surfaces)
+            {
+                var browserMark = surface.isBrowser ? " [browser]" : "";
+                lines.Add($"  {surface.refId} \"{surface.name}\"{browserMark}");
+            }
+        }
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            tree = string.Join(Environment.NewLine, lines),
+        });
+    }
+
+    private string HandleIdentify(Dictionary<string, string> args)
+    {
+        var workspace = SelectedWorkspace ?? Workspaces.FirstOrDefault();
+        var workspaceRef = "workspace:1";
+        var surfaceRef = "surface:1";
+
+        if (workspace != null)
+        {
+            var workspaceIndex = Math.Max(0, Workspaces.IndexOf(workspace)) + 1;
+            workspaceRef = $"workspace:{workspaceIndex}";
+            var surface = workspace.SelectedSurface ?? workspace.Surfaces.FirstOrDefault();
+            if (surface != null)
+            {
+                var surfaceIndex = Math.Max(0, workspace.Surfaces.IndexOf(surface)) + 1;
+                surfaceRef = $"surface:{surfaceIndex}";
+            }
+        }
+
+        return JsonSerializer.Serialize(new
+        {
+            caller = new
+            {
+                surface_ref = surfaceRef,
+                workspace_ref = workspaceRef,
+            },
+        });
+    }
+
+    private string HandleCapturePane(Dictionary<string, string> args)
+    {
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveSurface(workspace, args, out var surface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolvePaneId(surface, args, out var paneId, out _, out _, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        var session = surface.GetSession(paneId);
+        if (session == null)
+            return JsonSerializer.Serialize(new { error = $"Pane session not found: {paneId}" });
+
+        var includeScrollback = ParseBoolArg(args.GetValueOrDefault("scrollback"), defaultValue: false);
+        var lines = 80;
+        if (args.TryGetValue("lines", out var linesRaw) && int.TryParse(linesRaw, out var parsedLines))
+            lines = Math.Clamp(parsedLines, 1, 5000);
+
+        var allText = session.Buffer.ExportPlainText(maxScrollbackLines: includeScrollback ? 20000 : 0);
+        var text = TailLines(allText, lines);
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            text,
+        });
+    }
+
+    private string HandleSetBuffer(Dictionary<string, string> args)
+    {
+        var name = (args.GetValueOrDefault("name") ?? "").Trim();
+        var text = args.GetValueOrDefault("text")
+            ?? args.GetValueOrDefault("message")
+            ?? "";
+
+        if (string.IsNullOrEmpty(text))
+            text = args.GetValueOrDefault("_arg0") ?? "";
+
+        if (string.IsNullOrWhiteSpace(name))
+            _defaultBuffer = text;
+        else
+            _namedBuffers[name] = text;
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            name = string.IsNullOrWhiteSpace(name) ? "default" : name,
+            length = text.Length,
+        });
+    }
+
+    private string HandlePasteBuffer(Dictionary<string, string> args)
+    {
+        var name = (args.GetValueOrDefault("name") ?? "").Trim();
+        string text;
+        if (!string.IsNullOrWhiteSpace(name) && _namedBuffers.TryGetValue(name, out var namedText))
+            text = namedText;
+        else
+            text = _defaultBuffer;
+        if (string.IsNullOrEmpty(text))
+            return JsonSerializer.Serialize(new { error = "Buffer is empty." });
+
+        if (!TryResolveWorkspace(args, out var workspace, out var error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolveSurface(workspace, args, out var surface, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        if (!TryResolvePaneId(surface, args, out var paneId, out var paneIndex, out var paneName, out error))
+            return JsonSerializer.Serialize(new { error });
+
+        var session = surface.GetSession(paneId);
+        if (session == null)
+            return JsonSerializer.Serialize(new { error = $"Pane session not found: {paneId}" });
+
+        session.Write(text);
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            name = string.IsNullOrWhiteSpace(name) ? "default" : name,
+            workspaceId = workspace.Workspace.Id,
+            workspaceName = workspace.Name,
+            surfaceId = surface.Surface.Id,
+            surfaceName = surface.Name,
+            paneId,
+            paneIndex,
+            paneName,
+            bytes = text.Length,
+        });
+    }
+
+    private string HandleDisplayMessage(Dictionary<string, string> args)
+    {
+        var text = (args.GetValueOrDefault("text")
+            ?? args.GetValueOrDefault("message")
+            ?? args.GetValueOrDefault("_arg0")
+            ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return JsonSerializer.Serialize(new { error = "Missing required argument: text" });
+
+        var workspaceId = SelectedWorkspace?.Workspace.Id ?? "";
+        var surfaceId = SelectedWorkspace?.SelectedSurface?.Surface.Id ?? "";
+        _notificationService.AddNotification(workspaceId, surfaceId, null, "cmux", null, text, NotificationSource.Cli);
+
+        return JsonSerializer.Serialize(new { ok = true, text });
+    }
+
+    private static string HandleClaudeHook(Dictionary<string, string> args)
+    {
+        return JsonSerializer.Serialize(new { ok = true });
+    }
+
+    private static string HandleLogEvent(Dictionary<string, string> args)
+    {
+        return JsonSerializer.Serialize(new { ok = true });
+    }
+
     private string HandleStatus()
     {
         return JsonSerializer.Serialize(new
         {
-            version = "0.1.2",
+            version = "0.1.3",
             workspaces = Workspaces.Count,
             selectedWorkspace = SelectedWorkspace?.Workspace.Id,
             unreadNotifications = TotalUnreadCount,

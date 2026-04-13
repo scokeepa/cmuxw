@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Web.WebView2.Core;
+using System.IO;
 
 namespace Cmux.Controls;
 
@@ -105,6 +106,15 @@ public partial class BrowserControl : UserControl
     {
         if (WebView.CoreWebView2 == null) return "";
         return await WebView.CoreWebView2.ExecuteScriptAsync(script);
+    }
+
+    public async Task CaptureScreenshotAsync(string path)
+    {
+        if (WebView.CoreWebView2 == null)
+            throw new InvalidOperationException("Browser control is not ready.");
+
+        await using var fs = File.Create(path);
+        await WebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, fs);
     }
 
     /// <summary>Get the accessibility tree snapshot (simplified).</summary>
