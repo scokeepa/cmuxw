@@ -665,6 +665,18 @@
                                       Content="Open URLs with Ctrl+Click" />
                         </Grid>
 
+                        <!-- Browser Default URL -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Browser Default URL" Style="{StaticResource SectionLabel}" />
+                            <TextBox x:Name="BrowserDefaultUrlBox" Grid.Column="1"
+                                     Style="{StaticResource SettingsTextBox}"
+                                     ToolTip="Default URL opened by the browser button/menu/shortcut." />
+                        </Grid>
+
                         <!-- Auto Save Interval -->
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>

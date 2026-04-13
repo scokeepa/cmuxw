@@ -25,6 +25,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        Controls.BrowserControl.WarmUp();
         LocalizationManager.Instance.SetLanguage(SettingsService.Current.UiLanguage);
         ThemeManager.ApplyTheme(SettingsService.Current.ThemeName);
         LocalizationManager.Instance.LanguageChanged += ReapplyLocalizationToOpenWindows;

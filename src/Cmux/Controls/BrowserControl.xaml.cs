@@ -11,6 +11,12 @@ namespace Cmux.Controls;
 /// </summary>
 public partial class BrowserControl : UserControl
 {
+    private static readonly Lazy<Task<CoreWebView2Environment>> SharedEnvironmentTask = new(() =>
+        CoreWebView2Environment.CreateAsync());
+
+    private string? _pendingNavigateUrl;
+    private bool _isWebViewReady;
+
     public event Action? CloseRequested;
     public event Action? FocusRequested;
 
@@ -19,6 +25,23 @@ public partial class BrowserControl : UserControl
         InitializeComponent();
         PreviewMouseDown += (_, _) => FocusRequested?.Invoke();
         InitializeWebView();
+    }
+
+    public static void WarmUp()
+    {
+        _ = WarmUpSafeAsync();
+    }
+
+    private static async Task WarmUpSafeAsync()
+    {
+        try
+        {
+            await SharedEnvironmentTask.Value;
+        }
+        catch
+        {
+            // Ignore warm-up failures; regular initialization path reports details.
+        }
     }
 
     public void ClearEventHandlers()
@@ -31,10 +54,19 @@ public partial class BrowserControl : UserControl
     {
         try
         {
-            await WebView.EnsureCoreWebView2Async();
+            var env = await SharedEnvironmentTask.Value;
+            await WebView.EnsureCoreWebView2Async(env);
             WebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
             WebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             WebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+            _isWebViewReady = true;
+
+            if (!string.IsNullOrWhiteSpace(_pendingNavigateUrl))
+            {
+                var url = _pendingNavigateUrl;
+                _pendingNavigateUrl = null;
+                Navigate(url);
+            }
         }
         catch (Exception ex)
         {
@@ -51,10 +83,16 @@ public partial class BrowserControl : UserControl
             url = "https://" + url;
         }
 
+        _pendingNavigateUrl = url;
+        AddressBar.Text = url;
+
+        if (!_isWebViewReady || WebView.CoreWebView2 == null)
+            return;
+
         try
         {
-            WebView.CoreWebView2?.Navigate(url);
-            AddressBar.Text = url;
+            WebView.CoreWebView2.Navigate(url);
+            _pendingNavigateUrl = null;
         }
         catch
         {
