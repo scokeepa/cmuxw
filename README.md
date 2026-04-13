@@ -97,6 +97,19 @@ dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contain
 - Issue templates and PR template are enabled
 - `master` is protected and merge is PR-based
 
+## Release automation (templated notes)
+
+Use `release.ps1` to create or update release notes in a fixed format.
+Only change the tag (and optionally asset path).
+
+```powershell
+# Create a new release with templated notes
+.\release.ps1 -Tag v0.1.1 -AssetPath publish/kwcmux-win-x64.zip
+
+# Update notes of an existing release
+.\release.ps1 -Tag v0.1.1 -AssetPath publish/kwcmux-win-x64.zip -UpdateExisting
+```
+
 ## Project layout
 
 ```text
