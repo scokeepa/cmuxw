@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Cmux.Core.Config;
@@ -300,6 +301,9 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         if (string.IsNullOrWhiteSpace(sanitized))
             return;
 
+        if (_sessions.TryGetValue(paneId, out var hintedSession))
+            TryApplyCommandWorkingDirectoryHint(hintedSession, paneId, sanitized);
+
         AppendToCommandHistory(paneId, sanitized);
 
         var cwd = _sessions.TryGetValue(paneId, out var session)
@@ -352,6 +356,69 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 
         while (history.Count > 500)
             history.RemoveAt(0);
+    }
+
+    private void TryApplyCommandWorkingDirectoryHint(TerminalSession session, string paneId, string command)
+    {
+        var nextCwd = TryResolveWorkingDirectoryHint(session.WorkingDirectory, command);
+        if (string.IsNullOrWhiteSpace(nextCwd))
+            return;
+
+        session.WorkingDirectory = nextCwd;
+        if (paneId == FocusedPaneId)
+            WorkingDirectoryChanged?.Invoke(nextCwd);
+    }
+
+    private static string? TryResolveWorkingDirectoryHint(string? currentWorkingDirectory, string command)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+            return null;
+
+        var trimmed = command.Trim();
+        if (trimmed.Length == 0)
+            return null;
+
+        string? candidate = null;
+        if (trimmed.StartsWith("cd ", StringComparison.OrdinalIgnoreCase))
+            candidate = trimmed[3..].Trim();
+        else if (trimmed.StartsWith("chdir ", StringComparison.OrdinalIgnoreCase))
+            candidate = trimmed[6..].Trim();
+        else if (trimmed.StartsWith("set-location ", StringComparison.OrdinalIgnoreCase))
+            candidate = trimmed["set-location ".Length..].Trim();
+        else if (trimmed.StartsWith("sl ", StringComparison.OrdinalIgnoreCase))
+            candidate = trimmed[3..].Trim();
+        else if (trimmed.StartsWith("pushd ", StringComparison.OrdinalIgnoreCase))
+            candidate = trimmed[6..].Trim();
+
+        if (string.IsNullOrWhiteSpace(candidate))
+            return null;
+
+        candidate = candidate.Trim('"', '\'');
+        if (candidate is "~" or "$HOME")
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return string.IsNullOrWhiteSpace(home) ? null : home;
+        }
+
+        if (candidate == "-")
+            return null;
+
+        try
+        {
+            var baseDirectory = string.IsNullOrWhiteSpace(currentWorkingDirectory)
+                ? Environment.CurrentDirectory
+                : currentWorkingDirectory;
+
+            var resolved = Path.IsPathRooted(candidate)
+                ? candidate
+                : Path.Combine(baseDirectory, candidate);
+
+            return Path.GetFullPath(resolved);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private TerminalSession StartSession(string paneId, string? workingDirectory = null, PaneStateSnapshot? restoredState = null, string? shell = null)
@@ -549,7 +616,11 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
             {
                 var sanitized = App.CommandLogService.SanitizeCommandForStorage(payload);
                 if (!string.IsNullOrWhiteSpace(sanitized))
+                {
+                    // Fallback cwd tracking when shell OSC cwd integration is unavailable.
+                    TryApplyCommandWorkingDirectoryHint(session, paneId, sanitized);
                     AppendToCommandHistory(paneId, sanitized);
+                }
             }
         };
     }

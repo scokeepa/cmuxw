@@ -73,6 +73,9 @@ dotnet run --project src/Cmux/Cmux.csproj -c Debug
 cmux notify --title "Build" --body "Done"
 cmux workspace list
 cmux workspace create --name "My Project"
+cmux pane list
+cmux pane write --paneId <target-pane-id> --text "echo hello" --submit true
+cmux pane forward --fromPaneId <source-pane-id> --toPaneId <target-pane-id> --lines 40 --submit true
 cmux split right
 cmux status
 ```
@@ -96,6 +99,7 @@ dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contain
 - Contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Issue templates and PR template are enabled
 - `master` is protected and merge is PR-based
+- Upstream CLI compatibility matrix: [`docs/CLI_COMPAT.md`](docs/CLI_COMPAT.md)
 
 ## Release automation (templated notes)
 

@@ -37,7 +37,25 @@ public static class Program
                 "workspace" => await HandleWorkspace(args[1..]),
                 "surface" => await HandleSurface(args[1..]),
                 "split" => await HandleSplit(args[1..]),
+                "pane" => await HandlePane(args[1..]),
                 "status" => await HandleStatus(),
+                "list-workspaces" => await SendAndPrint("WORKSPACE.LIST", ParseArgs(args[1..])),
+                "new-workspace" => await HandleNewWorkspaceAlias(args[1..]),
+                "select-workspace" => await HandleSelectWorkspaceAlias(args[1..]),
+                "close-workspace" => await HandleCloseWorkspaceAlias(args[1..]),
+                "rename-workspace" => await HandleRenameWorkspaceAlias(args[1..]),
+                "current-workspace" => await SendAndPrint("WORKSPACE.CURRENT", ParseArgs(args[1..])),
+                "list-surfaces" => await HandleListSurfacesAlias(args[1..]),
+                "select-surface" => await HandleSelectSurfaceAlias(args[1..]),
+                "close-surface" => await HandleCloseSurfaceAlias(args[1..]),
+                "new-pane" => await HandleNewPaneAlias(args[1..]),
+                "new-split" => await HandleNewSplitAlias(args[1..]),
+                "read-screen" => await HandleReadScreenAlias(args[1..]),
+                "send" => await HandleSendAlias(args[1..]),
+                "send-key" => await HandleSendKeyAlias(args[1..]),
+                "workspace-action" => await HandleWorkspaceActionAlias(args[1..]),
+                "set-status" => await HandleSetStatusAlias(args[1..]),
+                "trigger-flash" => await HandleTriggerFlashAlias(args[1..]),
                 "help" or "--help" or "-h" => PrintHelp(),
                 "version" or "--version" or "-v" => PrintVersion(),
                 _ => Error($"Unknown command: {command}"),
@@ -133,9 +151,225 @@ public static class Program
         };
     }
 
+    private static async Task<int> HandlePane(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            Console.Error.WriteLine("Usage: cmux pane <list|focus|read|write|forward>");
+            return 1;
+        }
+
+        var subcommand = args[0].ToLowerInvariant();
+        var parsed = ParseArgs(args[1..]);
+
+        if (subcommand == "write"
+            && !parsed.ContainsKey("text")
+            && parsed.TryGetValue("_arg0", out var positionalText)
+            && !string.IsNullOrWhiteSpace(positionalText))
+        {
+            parsed["text"] = positionalText;
+        }
+
+        if (subcommand == "forward")
+        {
+            if (!parsed.ContainsKey("fromPaneId") && parsed.TryGetValue("from", out var fromPane) && !string.IsNullOrWhiteSpace(fromPane))
+                parsed["fromPaneId"] = fromPane;
+
+            if (!parsed.ContainsKey("toPaneId") && parsed.TryGetValue("to", out var toPane) && !string.IsNullOrWhiteSpace(toPane))
+                parsed["toPaneId"] = toPane;
+        }
+
+        return subcommand switch
+        {
+            "list" or "ls" => await SendAndPrint("PANE.LIST", parsed),
+            "focus" => await SendAndPrint("PANE.FOCUS", parsed),
+            "read" => await SendAndPrint("PANE.READ", parsed),
+            "write" => await SendAndPrint("PANE.WRITE", parsed),
+            "forward" => await SendAndPrint("PANE.FORWARD", parsed),
+            _ => Error($"Unknown pane command: {subcommand}"),
+        };
+    }
+
     private static async Task<int> HandleStatus()
     {
         return await SendAndPrint("STATUS");
+    }
+
+    private static async Task<int> HandleNewWorkspaceAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var cmdArgs = new Dictionary<string, string>();
+
+        if (parsed.TryGetValue("name", out var name) && !string.IsNullOrWhiteSpace(name))
+            cmdArgs["name"] = name;
+
+        // Keep raw compat flags even if current backend does not fully use them yet.
+        if (parsed.TryGetValue("cwd", out var cwd) && !string.IsNullOrWhiteSpace(cwd))
+            cmdArgs["cwd"] = cwd;
+        if (parsed.TryGetValue("command", out var command) && !string.IsNullOrWhiteSpace(command))
+            cmdArgs["command"] = command;
+
+        return await SendAndPrint("WORKSPACE.CREATE", cmdArgs);
+    }
+
+    private static async Task<int> HandleSelectWorkspaceAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        return await SendAndPrint("WORKSPACE.SELECT", parsed);
+    }
+
+    private static async Task<int> HandleCloseWorkspaceAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        return await SendAndPrint("WORKSPACE.CLOSE", parsed);
+    }
+
+    private static async Task<int> HandleRenameWorkspaceAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        if (!parsed.ContainsKey("title") && parsed.TryGetValue("_arg0", out var positionalTitle))
+            parsed["title"] = positionalTitle;
+        return await SendAndPrint("WORKSPACE.RENAME", parsed);
+    }
+
+    private static async Task<int> HandleListSurfacesAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        return await SendAndPrint("SURFACE.LIST", parsed);
+    }
+
+    private static async Task<int> HandleSelectSurfaceAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        return await SendAndPrint("SURFACE.SELECT", parsed);
+    }
+
+    private static async Task<int> HandleCloseSurfaceAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        return await SendAndPrint("SURFACE.CLOSE", parsed);
+    }
+
+    private static async Task<int> HandleNewPaneAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        return await SendAndPrint("SURFACE.CREATE", parsed);
+    }
+
+    private static async Task<int> HandleNewSplitAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+
+        var direction = parsed.GetValueOrDefault("direction")
+            ?? parsed.GetValueOrDefault("split")
+            ?? parsed.GetValueOrDefault("_arg0")
+            ?? "right";
+
+        var normalizedDirection = direction.Trim().ToLowerInvariant();
+        if (normalizedDirection is "right" or "v" or "vertical")
+            return await SendAndPrint("SPLIT.RIGHT", parsed);
+        if (normalizedDirection is "down" or "h" or "horizontal")
+            return await SendAndPrint("SPLIT.DOWN", parsed);
+
+        return Error($"Unknown split direction: {direction}");
+    }
+
+    private static async Task<int> HandleReadScreenAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+        return await SendAndPrint("PANE.READ", parsed);
+    }
+
+    private static async Task<int> HandleSendAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+
+        if (!parsed.ContainsKey("text"))
+        {
+            var text = string.Join(" ",
+                parsed
+                    .Where(kvp => kvp.Key.StartsWith("_arg", StringComparison.Ordinal))
+                    .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                    .Select(kvp => kvp.Value));
+            if (!string.IsNullOrWhiteSpace(text))
+                parsed["text"] = text.Trim();
+        }
+
+        return await SendAndPrint("PANE.WRITE", parsed);
+    }
+
+    private static async Task<int> HandleSendKeyAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+
+        var key = parsed.GetValueOrDefault("key")
+            ?? parsed.GetValueOrDefault("_arg0")
+            ?? "Return";
+
+        parsed["submit"] = "true";
+        parsed["submitKey"] = NormalizeSubmitKey(key);
+        return await SendAndPrint("PANE.WRITE", parsed);
+    }
+
+    private static async Task<int> HandleWorkspaceActionAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        var action = parsed.GetValueOrDefault("action")
+            ?? parsed.GetValueOrDefault("_arg0")
+            ?? "";
+        action = action.Trim().ToLowerInvariant();
+
+        return action switch
+        {
+            "next" => await SendAndPrint("WORKSPACE.NEXT", parsed),
+            "previous" or "prev" => await SendAndPrint("WORKSPACE.PREVIOUS", parsed),
+            "rename" => await SendAndPrint("WORKSPACE.RENAME", parsed),
+            _ => Error("workspace-action requires --action next|previous|rename"),
+        };
+    }
+
+    private static async Task<int> HandleSetStatusAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+
+        if (!parsed.ContainsKey("key"))
+            parsed["key"] = parsed.GetValueOrDefault("_arg0") ?? "";
+
+        if (!parsed.ContainsKey("value"))
+            parsed["value"] = parsed.GetValueOrDefault("_arg1") ?? "";
+
+        return await SendAndPrint("SET.STATUS", parsed);
+    }
+
+    private static async Task<int> HandleTriggerFlashAlias(string[] args)
+    {
+        var parsed = ParseArgs(args);
+        NormalizeCompatSelector(parsed, "workspace");
+        NormalizeCompatSelector(parsed, "surface");
+        NormalizeCompatSelector(parsed, "pane");
+        return await SendAndPrint("TRIGGER.FLASH", parsed);
     }
 
     private static async Task<int> SendAndPrint(string command, Dictionary<string, string>? args = null)
@@ -202,6 +436,27 @@ public static class Program
         return result;
     }
 
+    private static void NormalizeCompatSelector(Dictionary<string, string> parsed, string selector)
+    {
+        if (!parsed.TryGetValue(selector, out var value) || string.IsNullOrWhiteSpace(value))
+            return;
+
+        var canonical = selector + "Id";
+        parsed[canonical] = value;
+    }
+
+    private static string NormalizeSubmitKey(string key)
+    {
+        var normalized = key.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "return" or "enter" => "enter",
+            "linefeed" or "lf" => "linefeed",
+            "crlf" => "crlf",
+            _ => "enter",
+        };
+    }
+
     private static int PrintHelp()
     {
         Console.WriteLine("""
@@ -235,7 +490,35 @@ public static class Program
                 right               Split vertically (left/right)
                 down                Split horizontally (top/bottom)
 
+              pane                  Manage pane sessions by ID/name/index
+                list                List panes in selected workspace/surface
+                focus               Focus a pane
+                  --paneId <id>      Pane ID
+                  --paneName <name>  Pane custom/name label
+                  --paneIndex <n>    Pane index
+                read                Read pane output
+                  --paneId <id>
+                  --lines <n>        Tail line count (default: 80)
+                  --maxChars <n>     Max output chars (default: 20000)
+                write               Write text to a pane
+                  --paneId <id>
+                  --text <value>     Text to write
+                  --submit <bool>    Submit command after write
+                forward             Forward source pane output/text to target pane
+                  --fromPaneId <id>  Source pane ID (default: focused pane)
+                  --toPaneId <id>    Target pane ID (required)
+                  --lines <n>        Tail lines from source when text not set
+                  --text <value>     Explicit text instead of source tail
+                  --submit <bool>    Submit on target after write
+
               status                Show cmux status
+
+            cmux-compatible aliases:
+              list-workspaces, new-workspace, select-workspace, close-workspace
+              rename-workspace, current-workspace
+              list-surfaces, select-surface, close-surface
+              new-pane, new-split, read-screen, send, send-key
+              workspace-action, set-status, trigger-flash
 
             Keyboard Shortcuts (in the app):
               Ctrl+N                New workspace
