@@ -432,6 +432,7 @@ public partial class MainViewModel : ObservableObject
                 "PANE.FOCUS" => HandlePaneFocus(args),
                 "PANE.WRITE" => HandlePaneWrite(args),
                 "PANE.READ" => HandlePaneRead(args),
+                "PANE.FORWARD" => HandlePaneForward(args),
                 "STATUS" => HandleStatus(),
                 _ => JsonSerializer.Serialize(new { error = $"Unknown command: {command}" }),
             };
@@ -718,6 +719,110 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private string HandlePaneForward(Dictionary<string, string> args)
+    {
+        var sourceArgs = ExtractPrefixedArgs(args, "from");
+        var targetArgs = ExtractPrefixedArgs(args, "to");
+
+        if (!targetArgs.ContainsKey("paneId")
+            && !targetArgs.ContainsKey("paneName")
+            && !targetArgs.ContainsKey("paneIndex"))
+        {
+            return JsonSerializer.Serialize(new { error = "Target pane is required. Use --toPaneId, --toPaneName, or --toPaneIndex." });
+        }
+
+        if (!TryResolveWorkspace(sourceArgs, out var sourceWorkspace, out var sourceError))
+            return JsonSerializer.Serialize(new { error = sourceError });
+
+        if (!TryResolveSurface(sourceWorkspace, sourceArgs, out var sourceSurface, out sourceError))
+            return JsonSerializer.Serialize(new { error = sourceError });
+
+        if (!TryResolvePaneId(sourceSurface, sourceArgs, out var sourcePaneId, out var sourcePaneIndex, out var sourcePaneName, out sourceError))
+            return JsonSerializer.Serialize(new { error = sourceError });
+
+        if (!TryResolveWorkspace(targetArgs, out var targetWorkspace, out var targetError))
+            return JsonSerializer.Serialize(new { error = targetError });
+
+        if (!TryResolveSurface(targetWorkspace, targetArgs, out var targetSurface, out targetError))
+            return JsonSerializer.Serialize(new { error = targetError });
+
+        if (!TryResolvePaneId(targetSurface, targetArgs, out var targetPaneId, out var targetPaneIndex, out var targetPaneName, out targetError))
+            return JsonSerializer.Serialize(new { error = targetError });
+
+        var sourceSession = sourceSurface.GetSession(sourcePaneId);
+        if (sourceSession == null)
+            return JsonSerializer.Serialize(new { error = $"Source pane session not found: {sourcePaneId}" });
+
+        var targetSession = targetSurface.GetSession(targetPaneId);
+        if (targetSession == null)
+            return JsonSerializer.Serialize(new { error = $"Target pane session not found: {targetPaneId}" });
+
+        string payload;
+        if (args.TryGetValue("text", out var explicitText) && !string.IsNullOrWhiteSpace(explicitText))
+        {
+            payload = explicitText;
+        }
+        else
+        {
+            int lines = 80;
+            if (args.TryGetValue("lines", out var linesRaw) && int.TryParse(linesRaw, out var parsedLines))
+                lines = Math.Clamp(parsedLines, 1, 5000);
+
+            int maxChars = 20000;
+            if (args.TryGetValue("maxChars", out var charsRaw) && int.TryParse(charsRaw, out var parsedChars))
+                maxChars = Math.Clamp(parsedChars, 512, 200000);
+
+            var allText = sourceSession.Buffer.ExportPlainText(maxScrollbackLines: 20000);
+            payload = TailLines(allText, lines);
+            if (payload.Length > maxChars)
+                payload = payload[^maxChars..];
+        }
+
+        bool submit = ParseBoolArg(args.GetValueOrDefault("submit"), defaultValue: false);
+        var submitKey = args.GetValueOrDefault("submitKey", "auto");
+
+        if (!string.IsNullOrEmpty(payload))
+            targetSession.Write(payload);
+
+        if (submit)
+        {
+            var submitSequence = ResolveSubmitSequence(submitKey);
+            if (!string.IsNullOrEmpty(submitSequence))
+                targetSession.Write(submitSequence);
+
+            if (!string.IsNullOrWhiteSpace(payload))
+                targetSurface.RegisterCommandSubmission(targetPaneId, payload);
+        }
+
+        return JsonSerializer.Serialize(new
+        {
+            ok = true,
+            source = new
+            {
+                workspaceId = sourceWorkspace.Workspace.Id,
+                workspaceName = sourceWorkspace.Name,
+                surfaceId = sourceSurface.Surface.Id,
+                surfaceName = sourceSurface.Name,
+                paneId = sourcePaneId,
+                paneIndex = sourcePaneIndex,
+                paneName = sourcePaneName,
+            },
+            target = new
+            {
+                workspaceId = targetWorkspace.Workspace.Id,
+                workspaceName = targetWorkspace.Name,
+                surfaceId = targetSurface.Surface.Id,
+                surfaceName = targetSurface.Name,
+                paneId = targetPaneId,
+                paneIndex = targetPaneIndex,
+                paneName = targetPaneName,
+            },
+            bytes = payload.Length,
+            submit,
+            submitKey,
+        });
+    }
+
     private string HandleStatus()
     {
         return JsonSerializer.Serialize(new
@@ -972,5 +1077,31 @@ public partial class MainViewModel : ObservableObject
             "none" => "",
             _ => "\r",
         };
+    }
+
+    private static bool ParseBoolArg(string? value, bool defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return defaultValue;
+
+        return bool.TryParse(value, out var parsed) ? parsed : defaultValue;
+    }
+
+    private static Dictionary<string, string> ExtractPrefixedArgs(Dictionary<string, string> args, string prefix)
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        var normalizedPrefix = prefix + "";
+
+        foreach (var (key, value) in args)
+        {
+            if (!key.StartsWith(normalizedPrefix, StringComparison.OrdinalIgnoreCase) || key.Length == normalizedPrefix.Length)
+                continue;
+
+            var stripped = key[normalizedPrefix.Length..];
+            var normalizedKey = char.ToLowerInvariant(stripped[0]) + stripped[1..];
+            map[normalizedKey] = value;
+        }
+
+        return map;
     }
 }

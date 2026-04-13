@@ -37,6 +37,7 @@ public static class Program
                 "workspace" => await HandleWorkspace(args[1..]),
                 "surface" => await HandleSurface(args[1..]),
                 "split" => await HandleSplit(args[1..]),
+                "pane" => await HandlePane(args[1..]),
                 "status" => await HandleStatus(),
                 "help" or "--help" or "-h" => PrintHelp(),
                 "version" or "--version" or "-v" => PrintVersion(),
@@ -130,6 +131,45 @@ public static class Program
             "right" or "vertical" or "v" => await SendAndPrint("SPLIT.RIGHT"),
             "down" or "horizontal" or "h" => await SendAndPrint("SPLIT.DOWN"),
             _ => Error($"Unknown split direction: {direction}"),
+        };
+    }
+
+    private static async Task<int> HandlePane(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            Console.Error.WriteLine("Usage: cmux pane <list|focus|read|write|forward>");
+            return 1;
+        }
+
+        var subcommand = args[0].ToLowerInvariant();
+        var parsed = ParseArgs(args[1..]);
+
+        if (subcommand == "write"
+            && !parsed.ContainsKey("text")
+            && parsed.TryGetValue("_arg0", out var positionalText)
+            && !string.IsNullOrWhiteSpace(positionalText))
+        {
+            parsed["text"] = positionalText;
+        }
+
+        if (subcommand == "forward")
+        {
+            if (!parsed.ContainsKey("fromPaneId") && parsed.TryGetValue("from", out var fromPane) && !string.IsNullOrWhiteSpace(fromPane))
+                parsed["fromPaneId"] = fromPane;
+
+            if (!parsed.ContainsKey("toPaneId") && parsed.TryGetValue("to", out var toPane) && !string.IsNullOrWhiteSpace(toPane))
+                parsed["toPaneId"] = toPane;
+        }
+
+        return subcommand switch
+        {
+            "list" or "ls" => await SendAndPrint("PANE.LIST", parsed),
+            "focus" => await SendAndPrint("PANE.FOCUS", parsed),
+            "read" => await SendAndPrint("PANE.READ", parsed),
+            "write" => await SendAndPrint("PANE.WRITE", parsed),
+            "forward" => await SendAndPrint("PANE.FORWARD", parsed),
+            _ => Error($"Unknown pane command: {subcommand}"),
         };
     }
 
@@ -234,6 +274,27 @@ public static class Program
               split                 Split the focused pane
                 right               Split vertically (left/right)
                 down                Split horizontally (top/bottom)
+
+              pane                  Manage pane sessions by ID/name/index
+                list                List panes in selected workspace/surface
+                focus               Focus a pane
+                  --paneId <id>      Pane ID
+                  --paneName <name>  Pane custom/name label
+                  --paneIndex <n>    Pane index
+                read                Read pane output
+                  --paneId <id>
+                  --lines <n>        Tail line count (default: 80)
+                  --maxChars <n>     Max output chars (default: 20000)
+                write               Write text to a pane
+                  --paneId <id>
+                  --text <value>     Text to write
+                  --submit <bool>    Submit command after write
+                forward             Forward source pane output/text to target pane
+                  --fromPaneId <id>  Source pane ID (default: focused pane)
+                  --toPaneId <id>    Target pane ID (required)
+                  --lines <n>        Tail lines from source when text not set
+                  --text <value>     Explicit text instead of source tail
+                  --submit <bool>    Submit on target after write
 
               status                Show cmux status
 
