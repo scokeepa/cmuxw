@@ -13,39 +13,24 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FF1A1A1A" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#FF1A1A1A" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFE2E2E9" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#FFE2E2E9" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FF252547" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFE2E2E9" />
-
         <Style x:Key="SettingsComboItem" TargetType="ComboBoxItem">
-            <Setter Property="Background" Value="#FF1A1A1A" />
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="Padding" Value="6,4" />
             <Style.Triggers>
                 <Trigger Property="IsHighlighted" Value="True">
-                    <Setter Property="Background" Value="#FF252547" />
+                    <Setter Property="Background" Value="{DynamicResource SidebarItemSelectedBrush}" />
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#FF1E1E32" />
+                    <Setter Property="Background" Value="{DynamicResource SurfaceTabSelectedBrush}" />
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="SettingsCombo" TargetType="ComboBox">
-            <Style.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FF1A1A1A" />
-                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#FF1A1A1A" />
-                <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFE2E2E9" />
-                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#FFE2E2E9" />
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FF252547" />
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFE2E2E9" />
-            </Style.Resources>
-            <Setter Property="Background" Value="#FF1A1A1A" />
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
@@ -79,7 +64,8 @@
                                                   Content="{TemplateBinding SelectionBoxItem}"
                                                   ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                                   ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
-                                                  IsHitTestVisible="False" />
+                                                  IsHitTestVisible="False"
+                                                  TextElement.Foreground="{DynamicResource ForegroundBrush}" />
 
                                 <TextBox x:Name="PART_EditableTextBox"
                                          Grid.Column="0"
@@ -90,7 +76,7 @@
                                          VerticalContentAlignment="Center"
                                          Visibility="Hidden" />
 
-                                <Border Grid.Column="1" Background="#FF252547" CornerRadius="0,4,4,0" IsHitTestVisible="False">
+                                <Border Grid.Column="1" Background="{DynamicResource SidebarItemSelectedBrush}" CornerRadius="0,4,4,0" IsHitTestVisible="False">
                                     <TextBlock Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
                                                Foreground="{TemplateBinding Foreground}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -121,12 +107,14 @@
                                    PopupAnimation="Slide">
                                 <Border x:Name="DropDownBorder"
                                         Margin="0,2,0,0"
-                                        Background="#FF1A1A1A"
+                                        Background="{DynamicResource InputBackgroundBrush}"
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="6"
-                                        MinWidth="{TemplateBinding ActualWidth}">
-                                    <ScrollViewer Margin="2" SnapsToDevicePixels="True">
+                                        MinWidth="{TemplateBinding ActualWidth}"
+                                        TextElement.Foreground="{DynamicResource ForegroundBrush}">
+                                    <ScrollViewer Margin="2" SnapsToDevicePixels="True"
+                                                  TextElement.Foreground="{DynamicResource ForegroundBrush}">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                                     </ScrollViewer>
                                 </Border>
@@ -153,7 +141,7 @@
         </Style>
 
         <Style x:Key="DarkTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#FF1A1A1A" />
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="CaretBrush" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}" />
@@ -163,7 +151,7 @@
         </Style>
 
         <Style x:Key="DarkListHeader" TargetType="GridViewColumnHeader">
-            <Setter Property="Background" Value="#FF1A1A2E" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceHighBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="0,0,1,1" />
@@ -186,10 +174,10 @@
             <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1FFFFFFF" />
+                    <Setter Property="Background" Value="{DynamicResource SidebarItemHoverBrush}" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#FF252547" />
+                    <Setter Property="Background" Value="{DynamicResource SidebarItemSelectedBrush}" />
                     <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
                 </Trigger>
             </Style.Triggers>
