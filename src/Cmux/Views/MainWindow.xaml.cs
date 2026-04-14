@@ -973,6 +973,11 @@ public partial class MainWindow : Window
 
     private void SidebarTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // SelectionChanged can fire during InitializeComponent before all named controls are ready.
+        // Defer layout sync until the window is fully loaded.
+        if (!IsLoaded)
+            return;
+
         UpdateSidebarTabMode();
     }
 
@@ -1003,6 +1008,15 @@ public partial class MainWindow : Window
 
     private void UpdateSidebarTabMode()
     {
+        if (SidebarTabControl == null
+            || WorkspaceFilterBox == null
+            || ExplorerSidebarControl == null
+            || SidebarExplorerAddRootButton == null
+            || SidebarExplorerRefreshButton == null
+            || SidebarSectionTitle == null
+            || SidebarSectionSubtitle == null)
+            return;
+
         var isWorkspaceTab = SidebarTabControl.SelectedItem == WorkspacesTab;
         ExplorerSidebarControl.SetToolbarVisible(false);
         SidebarExplorerAddRootButton.Visibility = isWorkspaceTab ? Visibility.Collapsed : Visibility.Visible;

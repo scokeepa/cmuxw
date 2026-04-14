@@ -53,6 +53,8 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
     private readonly NotificationService _notificationService;
     private System.Threading.Timer? _infoRefreshTimer;
 
+    public ExplorerViewModel Explorer { get; }
+
 
     public WorkspaceViewModel(Workspace workspace, NotificationService notificationService)
     {
@@ -61,6 +63,7 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
         _iconGlyph = workspace.IconGlyph;
         _accentColor = workspace.AccentColor;
         _notificationService = notificationService;
+        Explorer = new ExplorerViewModel(workspace);
 
         // Create surface VMs for existing surfaces
         foreach (var surface in workspace.Surfaces)

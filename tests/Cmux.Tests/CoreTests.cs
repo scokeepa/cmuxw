@@ -760,3 +760,126 @@ public class AgentConversationStoreMessageParsingTests
         }
     }
 }
+
+public class ExplorerIntegrationTests
+{
+    [Fact]
+    public void ExplorerFileSystemService_MultiRootCrudMoveDelete_Works()
+    {
+        var sandbox = Path.Combine(Path.GetTempPath(), $"cmux-explorer-{Guid.NewGuid():N}");
+        var rootA = Path.Combine(sandbox, "RootA");
+        var rootB = Path.Combine(sandbox, "RootB");
+        var outside = Path.Combine(sandbox, "Outside");
+
+        try
+        {
+            Directory.CreateDirectory(rootA);
+            Directory.CreateDirectory(rootB);
+            Directory.CreateDirectory(outside);
+
+            var policy = new ExplorerPathPolicy();
+            policy.SetRoots([rootA, rootB]);
+            var fs = new ExplorerFileSystemService(policy);
+
+            var srcFolder = fs.CreateFolder(rootA, "src");
+            var created = fs.CreateFile(srcFolder, "a.txt");
+            File.Exists(created).Should().BeTrue();
+
+            var moved = fs.Move(created, rootB);
+            moved.Should().Be(Path.Combine(rootB, "a.txt"));
+            File.Exists(moved).Should().BeTrue();
+            File.Exists(created).Should().BeFalse();
+
+            var renamed = fs.Rename(moved, "b.txt");
+            renamed.Should().Be(Path.Combine(rootB, "b.txt"));
+            File.Exists(renamed).Should().BeTrue();
+
+            fs.Delete(renamed);
+            File.Exists(renamed).Should().BeFalse();
+
+            Action invalidMove = () => fs.Move(Path.Combine(rootA, "missing.txt"), outside);
+            invalidMove.Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            if (Directory.Exists(sandbox))
+                Directory.Delete(sandbox, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ExplorerPathPolicy_BlocksPathsOutsideAllowedRoots()
+    {
+        var sandbox = Path.Combine(Path.GetTempPath(), $"cmux-policy-{Guid.NewGuid():N}");
+        var root = Path.Combine(sandbox, "Root");
+        var outside = Path.Combine(sandbox, "Outside");
+
+        try
+        {
+            Directory.CreateDirectory(root);
+            Directory.CreateDirectory(outside);
+
+            var policy = new ExplorerPathPolicy();
+            policy.SetRoots([root]);
+
+            policy.IsPathWithinAnyRoot(root).Should().BeTrue();
+            policy.IsPathWithinAnyRoot(Path.Combine(root, "nested", "a.txt")).Should().BeTrue();
+            policy.IsPathWithinAnyRoot(outside).Should().BeFalse();
+            policy.IsPathWithinAnyRoot(Path.Combine(outside, "x.txt")).Should().BeFalse();
+        }
+        finally
+        {
+            if (Directory.Exists(sandbox))
+                Directory.Delete(sandbox, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SessionPersistence_BuildState_PreservesWorkspaceExplorerState()
+    {
+        var root1 = Path.Combine(Path.GetTempPath(), "cmux-root1");
+        var root2 = Path.Combine(Path.GetTempPath(), "cmux-root2");
+        var selectedPath = Path.Combine(root2, "project", "file.txt");
+
+        var workspace = new Workspace
+        {
+            Name = "WS",
+            WorkingDirectory = root1,
+            ExplorerState = new WorkspaceExplorerState
+            {
+                SelectedPath = selectedPath,
+                ExpandedPaths = [root1, Path.Combine(root1, "src"), root2],
+                Roots =
+                [
+                    new ExplorerRootConfig { Id = "r1", Path = root1, DisplayName = "Root 1" },
+                    new ExplorerRootConfig { Id = "r2", Path = root2, DisplayName = "Root 2" },
+                ],
+            },
+        };
+        workspace.Surfaces.Add(new Surface { Name = "Terminal 1" });
+        workspace.SelectedSurface = workspace.Surfaces[0];
+
+        var state = SessionPersistenceService.BuildState(
+            [workspace],
+            selectedWorkspaceIndex: 0,
+            windowX: 1,
+            windowY: 2,
+            windowWidth: 1200,
+            windowHeight: 800,
+            isMaximized: false,
+            sidebarWidth: 280,
+            sidebarVisible: true,
+            compactSidebar: false,
+            agentPanelWidth: 380,
+            agentPanelVisible: true,
+            notificationPanelVisible: false);
+
+        state.Workspaces.Should().HaveCount(1);
+        var restored = state.Workspaces[0].ExplorerState;
+        restored.SelectedPath.Should().Be(selectedPath);
+        restored.ExpandedPaths.Should().Contain([root1, Path.Combine(root1, "src"), root2]);
+        restored.Roots.Should().HaveCount(2);
+        restored.Roots.Select(r => r.Id).Should().ContainInOrder("r1", "r2");
+        restored.Roots.Select(r => r.DisplayName).Should().ContainInOrder("Root 1", "Root 2");
+    }
+}

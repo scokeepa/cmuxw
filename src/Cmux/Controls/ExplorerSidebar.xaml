@@ -51,6 +51,7 @@
                   BorderThickness="0"
                   ItemsSource="{Binding Roots}"
                   SelectedItemChanged="ExplorerTree_SelectedItemChanged"
+                  PreviewMouseRightButtonDown="ExplorerTree_PreviewMouseRightButtonDown"
                   PreviewMouseMove="ExplorerTree_PreviewMouseMove"
                   PreviewMouseLeftButtonDown="ExplorerTree_PreviewMouseLeftButtonDown"
                   DragOver="ExplorerTree_DragOver"
@@ -72,22 +73,6 @@
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                     <Setter Property="AllowDrop" Value="True" />
-                    <Setter Property="ContextMenu">
-                        <Setter.Value>
-                            <ContextMenu Opened="NodeContextMenu_Opened">
-                                <MenuItem x:Name="NewFileMenuItem" Header="New File" Click="NewFile_Click" />
-                                <MenuItem x:Name="NewFolderMenuItem" Header="New Folder" Click="NewFolder_Click" />
-                                <Separator />
-                                <MenuItem x:Name="RenameNodeMenuItem" Header="Rename" Click="RenameNode_Click" />
-                                <MenuItem x:Name="DeleteNodeMenuItem" Header="Delete" Click="DeleteNode_Click" />
-                                <Separator />
-                                <MenuItem x:Name="OpenInTerminalMenuItem" Header="Open in Terminal" Click="OpenInTerminal_Click" />
-                                <MenuItem x:Name="RevealInExplorerMenuItem" Header="Reveal in Explorer" Click="RevealInExplorer_Click" />
-                                <Separator />
-                                <MenuItem x:Name="RemoveRootMenuItem" Header="Remove Root" Click="RemoveRoot_Click" />
-                            </ContextMenu>
-                        </Setter.Value>
-                    </Setter>
                 </Style>
             </TreeView.Resources>
         </TreeView>

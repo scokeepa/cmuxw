@@ -115,73 +115,138 @@ public partial class ExplorerSidebar : UserControl
             Vm.SelectedItem = e.NewValue as ExplorerItemViewModel;
     }
 
-    private void NodeContextMenu_Opened(object sender, RoutedEventArgs e)
+    private void ExplorerTree_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        LocalizationManager.LocalizeContextMenuHeaders(((ContextMenu)sender).Items);
-        if (sender is not ContextMenu cm || cm.PlacementTarget is not FrameworkElement fe)
+        if (Vm == null)
             return;
 
-        if (fe.DataContext is ExplorerItemViewModel node && Vm != null)
+        var item = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
+        if (item?.DataContext is not ExplorerItemViewModel node || node.IsPlaceholder)
+            return;
+
+        Vm.SelectedItem = node;
+        node.IsSelected = true;
+
+        var contextMenu = BuildNodeContextMenu(node);
+        item.ContextMenu = contextMenu;
+        contextMenu.PlacementTarget = item;
+        contextMenu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    private ContextMenu BuildNodeContextMenu(ExplorerItemViewModel node)
+    {
+        var menu = new ContextMenu { DataContext = node };
+
+        menu.Items.Add(CreateNodeMenuItem("New File", NewFile_Click, node, node.IsDirectory, "NewFileMenuItem"));
+        menu.Items.Add(CreateNodeMenuItem("New Folder", NewFolder_Click, node, node.IsDirectory, "NewFolderMenuItem"));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateNodeMenuItem("Rename", RenameNode_Click, node, !node.IsRoot, "RenameNodeMenuItem"));
+        menu.Items.Add(CreateNodeMenuItem("Delete", DeleteNode_Click, node, !node.IsRoot, "DeleteNodeMenuItem"));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateNodeMenuItem("Open in Terminal", OpenInTerminal_Click, node, true, "OpenInTerminalMenuItem"));
+        menu.Items.Add(CreateNodeMenuItem("Reveal in Explorer", RevealInExplorer_Click, node, true, "RevealInExplorerMenuItem"));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(CreateNodeMenuItem("Remove Root", RemoveRoot_Click, node, node.IsRoot, "RemoveRootMenuItem"));
+
+        return menu;
+    }
+
+    private MenuItem CreateNodeMenuItem(
+        string headerKey,
+        RoutedEventHandler onClick,
+        ExplorerItemViewModel node,
+        bool isEnabled,
+        string name)
+    {
+        var item = new MenuItem
         {
+            Name = name,
+            Header = L.T(headerKey),
+            CommandParameter = node,
+            IsEnabled = isEnabled
+        };
+        item.Click += onClick;
+        return item;
+    }
+
+    private void NodeContextMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu cm)
+            return;
+
+        LocalizationManager.LocalizeContextMenuHeaders(cm.Items);
+        var node = ResolveNodeFromContextMenu(cm);
+        if (node != null && Vm != null)
+        {
+            cm.DataContext = node;
             Vm.SelectedItem = node;
             foreach (var item in cm.Items.OfType<MenuItem>())
             {
+                item.CommandParameter = node;
+
                 if (item.Name == "RemoveRootMenuItem")
                     item.IsEnabled = node.IsRoot;
                 else if (item.Name == "NewFileMenuItem" || item.Name == "NewFolderMenuItem")
                     item.IsEnabled = node.IsDirectory;
                 else if (item.Name == "RenameNodeMenuItem" || item.Name == "DeleteNodeMenuItem")
                     item.IsEnabled = !node.IsRoot;
+                else if (item.Name == "OpenInTerminalMenuItem" || item.Name == "RevealInExplorerMenuItem")
+                    item.IsEnabled = true;
             }
         }
     }
 
     private async void NewFile_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null) return;
+        var node = ResolveTargetNode(sender);
+        if (Vm == null || node == null) return;
         var prompt = new TextPromptWindow(L.T("New File"), L.T("Enter file name"));
         prompt.Owner = Window.GetWindow(this);
         if (prompt.ShowDialog() != true)
             return;
-        if (!Vm.TryCreateFile(Vm.SelectedItem, prompt.ResponseText.Trim(), out _, out var error))
+        if (!Vm.TryCreateFile(node, prompt.ResponseText.Trim(), out _, out var error))
             MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
-        await Vm.RefreshNodeAsync(Vm.SelectedItem.IsDirectory ? Vm.SelectedItem : Vm.SelectedItem.Parent);
+        await Vm.RefreshNodeAsync(node.IsDirectory ? node : node.Parent);
     }
 
     private async void NewFolder_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null) return;
+        var node = ResolveTargetNode(sender);
+        if (Vm == null || node == null) return;
         var prompt = new TextPromptWindow(L.T("New Folder"), L.T("Enter folder name"));
         prompt.Owner = Window.GetWindow(this);
         if (prompt.ShowDialog() != true)
             return;
-        if (!Vm.TryCreateFolder(Vm.SelectedItem, prompt.ResponseText.Trim(), out _, out var error))
+        if (!Vm.TryCreateFolder(node, prompt.ResponseText.Trim(), out _, out var error))
             MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
-        await Vm.RefreshNodeAsync(Vm.SelectedItem.IsDirectory ? Vm.SelectedItem : Vm.SelectedItem.Parent);
+        await Vm.RefreshNodeAsync(node.IsDirectory ? node : node.Parent);
     }
 
     private async void RenameNode_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null) return;
-        var prompt = new TextPromptWindow(L.T("Rename"), L.T("Enter new name"), Vm.SelectedItem.DisplayName);
+        var node = ResolveTargetNode(sender);
+        if (Vm == null || node == null) return;
+        var prompt = new TextPromptWindow(L.T("Rename"), L.T("Enter new name"), node.DisplayName);
         prompt.Owner = Window.GetWindow(this);
         if (prompt.ShowDialog() != true)
             return;
-        if (!Vm.TryRename(Vm.SelectedItem, prompt.ResponseText.Trim(), out _, out var error))
+        if (!Vm.TryRename(node, prompt.ResponseText.Trim(), out _, out var error))
             MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
-        await Vm.RefreshNodeAsync(Vm.SelectedItem.Parent ?? Vm.SelectedItem);
+        await Vm.RefreshNodeAsync(node.Parent ?? node);
     }
 
     private async void DeleteNode_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null) return;
+        var node = ResolveTargetNode(sender);
+        if (Vm == null || node == null) return;
 
-        var msg = string.Format(L.T("Delete '{0}'?"), Vm.SelectedItem.DisplayName);
+        var msg = string.Format(L.T("Delete '{0}'?"), node.DisplayName);
         if (MessageBox.Show(msg, L.T("Explorer"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             return;
 
-        var parent = Vm.SelectedItem.Parent;
-        if (!Vm.TryDelete(Vm.SelectedItem, out var error))
+        var parent = node.Parent;
+        if (!Vm.TryDelete(node, out var error))
         {
             MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -192,25 +257,27 @@ public partial class ExplorerSidebar : UserControl
 
     private void OpenInTerminal_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null)
+        var node = ResolveTargetNode(sender);
+        if (node == null)
             return;
 
-        var path = Vm.SelectedItem.IsDirectory
-            ? Vm.SelectedItem.FullPath
-            : Path.GetDirectoryName(Vm.SelectedItem.FullPath) ?? Vm.SelectedItem.FullPath;
+        var path = node.IsDirectory
+            ? node.FullPath
+            : Path.GetDirectoryName(node.FullPath) ?? node.FullPath;
 
         OpenPathInTerminalRequested?.Invoke(path);
     }
 
     private void RevealInExplorer_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null)
+        var node = ResolveTargetNode(sender);
+        if (node == null)
             return;
 
         try
         {
-            var path = Vm.SelectedItem.FullPath;
-            if (Vm.SelectedItem.IsDirectory)
+            var path = node.FullPath;
+            if (node.IsDirectory)
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
             else
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
@@ -223,9 +290,44 @@ public partial class ExplorerSidebar : UserControl
 
     private void RemoveRoot_Click(object sender, RoutedEventArgs e)
     {
-        if (Vm?.SelectedItem == null)
+        var node = ResolveTargetNode(sender);
+        if (Vm == null || node == null)
             return;
-        Vm.RemoveRoot(Vm.SelectedItem);
+        Vm.RemoveRoot(node);
+    }
+
+    private ExplorerItemViewModel? ResolveTargetNode(object sender)
+    {
+        if (sender is MenuItem { CommandParameter: ExplorerItemViewModel fromParameter })
+        {
+            if (Vm != null)
+                Vm.SelectedItem = fromParameter;
+            return fromParameter;
+        }
+
+        if (sender is MenuItem mi && mi.Parent is ContextMenu cm)
+        {
+            var fromMenu = ResolveNodeFromContextMenu(cm);
+            if (fromMenu == null)
+                return Vm?.SelectedItem;
+
+            if (Vm != null)
+                Vm.SelectedItem = fromMenu;
+            return fromMenu;
+        }
+
+        return Vm?.SelectedItem;
+    }
+
+    private static ExplorerItemViewModel? ResolveNodeFromContextMenu(ContextMenu cm)
+    {
+        if (cm.DataContext is ExplorerItemViewModel byContextMenu)
+            return byContextMenu;
+
+        if (cm.PlacementTarget is FrameworkElement fe && fe.DataContext is ExplorerItemViewModel byPlacement)
+            return byPlacement;
+
+        return null;
     }
 
     private void ExplorerTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -292,7 +394,7 @@ public partial class ExplorerSidebar : UserControl
         }
     }
 
-    private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+    private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
     {
         while (current != null)
         {

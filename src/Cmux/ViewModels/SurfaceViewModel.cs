@@ -366,6 +366,22 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         return captured;
     }
 
+    /// <summary>
+    /// Re-reads cwd from the last shell prompt in each pane's buffer (no throttle), so session.json
+    /// reflects the real folder even if the user closes the app before the next throttled parse.
+    /// </summary>
+    public void SyncWorkingDirectoryHintsForPersistence()
+    {
+        foreach (var kv in _sessions)
+        {
+            if (TryResolvePromptWorkingDirectory(kv.Value, out var resolved)
+                && !string.IsNullOrWhiteSpace(resolved))
+            {
+                kv.Value.WorkingDirectory = resolved;
+            }
+        }
+    }
+
     public void CapturePaneSnapshotsForPersistence()
     {
         var activePaneIds = RootNode.GetLeaves()

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Linq;
+using Cmux.Services;
 using Cmux.ViewModels;
 
 namespace Cmux.Controls;
@@ -17,6 +18,12 @@ public partial class SurfaceTabBar : UserControl
     public SurfaceTabBar()
     {
         InitializeComponent();
+    }
+
+    private void SurfaceTab_ContextMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu cm)
+            LocalizationManager.LocalizeContextMenuHeaders(cm.Items);
     }
 
     public void FocusSearch()

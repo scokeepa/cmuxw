@@ -39,6 +39,9 @@ public class WorkspaceState
 
     [JsonPropertyName("selectedSurfaceIndex")]
     public int? SelectedSurfaceIndex { get; set; }
+
+    [JsonPropertyName("explorerState")]
+    public WorkspaceExplorerState ExplorerState { get; set; } = new();
 }
 
 public class SurfaceState
@@ -114,4 +117,14 @@ public class WindowState
 
     [JsonPropertyName("compactSidebar")]
     public bool CompactSidebar { get; set; }
+
+    [JsonPropertyName("agentPanelWidth")]
+    public double AgentPanelWidth { get; set; } = 380;
+
+    [JsonPropertyName("agentPanelVisible")]
+    public bool AgentPanelVisible { get; set; } = true;
+
+    /// <summary>Null when absent in older session files — do not change UI default.</summary>
+    [JsonPropertyName("notificationPanelVisible")]
+    public bool? NotificationPanelVisible { get; set; }
 }
