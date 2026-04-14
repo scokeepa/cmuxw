@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Cmux.Core.Models;
 using Cmux.Core.Services;
+using Cmux.Services;
 
 namespace Cmux.ViewModels;
 
@@ -123,6 +125,13 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
     {
         if (surface == null) return;
         if (Surfaces.Count <= 1) return; // Keep at least one
+
+        if (MessageBox.Show(
+                L.T("Close this side tab?"),
+                L.T("Confirm Action"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
 
         int index = Surfaces.IndexOf(surface);
         surface.CaptureAllPaneTranscripts("surface-close");
