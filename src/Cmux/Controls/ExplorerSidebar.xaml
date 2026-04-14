@@ -1,0 +1,95 @@
+<UserControl x:Class="Cmux.Controls.ExplorerSidebar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Cmux.ViewModels">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="ExplorerToolbar" Grid.Row="0" Margin="6,6,6,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="ExplorerFilterBox"
+                     Grid.Column="0"
+                     Margin="0,0,6,0"
+                     Padding="8,5"
+                     Background="{DynamicResource InputBackgroundBrush}"
+                     Foreground="{DynamicResource ForegroundBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}"
+                     BorderThickness="1"
+                     CaretBrush="{DynamicResource ForegroundBrush}"
+                     ToolTip="Filter explorer"
+                     TextChanged="ExplorerFilterBox_TextChanged" />
+            <Button Grid.Column="1"
+                    Width="24"
+                    Height="24"
+                    Margin="0,0,4,0"
+                    Style="{StaticResource IconButton}"
+                    ToolTip="Add root"
+                    Click="AddRoot_Click">
+                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+            </Button>
+            <Button Grid.Column="2"
+                    Width="24"
+                    Height="24"
+                    Style="{StaticResource IconButton}"
+                    ToolTip="Refresh explorer"
+                    Click="RefreshExplorer_Click">
+                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+            </Button>
+        </Grid>
+
+        <TreeView x:Name="ExplorerTree"
+                  Grid.Row="1"
+                  Margin="4,0,4,4"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  ItemsSource="{Binding Roots}"
+                  SelectedItemChanged="ExplorerTree_SelectedItemChanged"
+                  PreviewMouseMove="ExplorerTree_PreviewMouseMove"
+                  PreviewMouseLeftButtonDown="ExplorerTree_PreviewMouseLeftButtonDown"
+                  DragOver="ExplorerTree_DragOver"
+                  Drop="ExplorerTree_Drop">
+            <TreeView.Resources>
+                <HierarchicalDataTemplate DataType="{x:Type vm:ExplorerItemViewModel}"
+                                          ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Glyph}"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   Margin="0,0,6,0"
+                                   Foreground="{DynamicResource ForegroundDimBrush}" />
+                        <TextBlock Text="{Binding DisplayName}"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   FontSize="12" />
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                    <Setter Property="AllowDrop" Value="True" />
+                    <Setter Property="ContextMenu">
+                        <Setter.Value>
+                            <ContextMenu Opened="NodeContextMenu_Opened">
+                                <MenuItem x:Name="NewFileMenuItem" Header="New File" Click="NewFile_Click" />
+                                <MenuItem x:Name="NewFolderMenuItem" Header="New Folder" Click="NewFolder_Click" />
+                                <Separator />
+                                <MenuItem x:Name="RenameNodeMenuItem" Header="Rename" Click="RenameNode_Click" />
+                                <MenuItem x:Name="DeleteNodeMenuItem" Header="Delete" Click="DeleteNode_Click" />
+                                <Separator />
+                                <MenuItem x:Name="OpenInTerminalMenuItem" Header="Open in Terminal" Click="OpenInTerminal_Click" />
+                                <MenuItem x:Name="RevealInExplorerMenuItem" Header="Reveal in Explorer" Click="RevealInExplorer_Click" />
+                                <Separator />
+                                <MenuItem x:Name="RemoveRootMenuItem" Header="Remove Root" Click="RemoveRoot_Click" />
+                            </ContextMenu>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TreeView.Resources>
+        </TreeView>
+    </Grid>
+</UserControl>

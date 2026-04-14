@@ -241,14 +241,18 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Vertical">
-                                    <TextBlock Text="Workspaces" Foreground="{DynamicResource ForegroundBrush}" FontSize="12" FontWeight="SemiBold" />
-                                    <TextBlock Text="Manage sessions and environments" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
+                                    <TextBlock x:Name="SidebarSectionTitle" Text="Workspaces" Foreground="{DynamicResource ForegroundBrush}" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="SidebarSectionSubtitle" Text="Manage sessions and environments" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Style="{StaticResource IconButton}" ToolTip="New Workspace (Ctrl+N)"
                                             Width="24" Height="24" Command="{Binding CreateNewWorkspaceCommand}">
                                         <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                                    </Button>
+                                    <Button x:Name="SidebarExplorerToggleButton" Style="{StaticResource IconButton}" ToolTip="Toggle Explorer"
+                                            Width="24" Height="24" Click="SidebarExplorerToggle_Click">
+                                        <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
                                     </Button>
                                     <Button Style="{StaticResource IconButton}" ToolTip="Session Vault (Ctrl+Shift+V)"
                                             Width="24" Height="24" Click="MenuOpenSessionVault_Click">
@@ -261,6 +265,16 @@
                                     <Button Style="{StaticResource IconButton}" ToolTip="Reset sidebar view"
                                             Width="24" Height="24" Click="SidebarResetSession_Click">
                                         <TextBlock Text="&#xE149;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                                    </Button>
+                                    <Button x:Name="SidebarExplorerAddRootButton" Style="{StaticResource IconButton}" ToolTip="Add root"
+                                            Width="24" Height="24" Click="SidebarExplorerAddRoot_Click"
+                                            Visibility="Collapsed">
+                                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                                    </Button>
+                                    <Button x:Name="SidebarExplorerRefreshButton" Style="{StaticResource IconButton}" ToolTip="Refresh explorer"
+                                            Width="24" Height="24" Click="SidebarExplorerRefresh_Click"
+                                            Visibility="Collapsed">
+                                        <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
                                     </Button>
                                 </StackPanel>
 
@@ -275,64 +289,76 @@
                             </Grid>
                         </Border>
 
-                        <!-- Workspace list -->
-                        <ListBox Grid.Row="1" ItemsSource="{Binding Workspaces}"
-                                 SelectedItem="{Binding SelectedWorkspace}"
-                                 Background="Transparent" BorderThickness="0"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 AllowDrop="True" Padding="4,4,4,0"
-                                 x:Name="WorkspaceList">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type vm:WorkspaceViewModel}">
-                                    <controls:WorkspaceSidebarItem />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Background" Value="Transparent" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="Margin" Value="0,1" />
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ListBoxItem">
-                                                <Grid>
-                                                    <!-- Active indicator bar (left edge) -->
-                                                    <Rectangle x:Name="activeBar" Width="3" HorizontalAlignment="Left"
-                                                               RadiusX="1.5" RadiusY="1.5" Opacity="0"
-                                                               Margin="0,4">
-                                                        <Rectangle.Fill>
-                                                            <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-                                                                <GradientStop Color="#FF6366F1" Offset="0" />
-                                                                <GradientStop Color="#FFA78BFA" Offset="1" />
-                                                            </LinearGradientBrush>
-                                                        </Rectangle.Fill>
-                                                    </Rectangle>
-                                                    <Border x:Name="border" Background="{TemplateBinding Background}"
-                                                            CornerRadius="8" Padding="10,8" Margin="6,0,2,0">
-                                                        <ContentPresenter />
-                                                    </Border>
-                                                </Grid>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="border" Property="Background"
-                                                                Value="{DynamicResource SidebarItemHoverBrush}" />
-                                                    </Trigger>
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter TargetName="border" Property="Background"
-                                                                Value="{DynamicResource SidebarItemSelectedBrush}" />
-                                                        <Setter TargetName="activeBar" Property="Opacity" Value="1" />
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="WorkspaceItem_PreviewMouseDown" />
-                                    <EventSetter Event="PreviewMouseMove" Handler="WorkspaceItem_PreviewMouseMove" />
-                                    <EventSetter Event="Drop" Handler="WorkspaceItem_Drop" />
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                        </ListBox>
+                        <!-- Sidebar center tabs -->
+                        <TabControl x:Name="SidebarTabControl" Grid.Row="1"
+                                    Margin="0,2,0,0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    SelectionChanged="SidebarTabControl_SelectionChanged">
+                            <TabItem x:Name="WorkspacesTab" Header="Workspaces">
+                                <ListBox ItemsSource="{Binding Workspaces}"
+                                         SelectedItem="{Binding SelectedWorkspace}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         AllowDrop="True" Padding="4,4,4,0"
+                                         x:Name="WorkspaceList">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:WorkspaceViewModel}">
+                                            <controls:WorkspaceSidebarItem />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0,1" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Grid>
+                                                            <!-- Active indicator bar (left edge) -->
+                                                            <Rectangle x:Name="activeBar" Width="3" HorizontalAlignment="Left"
+                                                                       RadiusX="1.5" RadiusY="1.5" Opacity="0"
+                                                                       Margin="0,4">
+                                                                <Rectangle.Fill>
+                                                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                                                        <GradientStop Color="#FF6366F1" Offset="0" />
+                                                                        <GradientStop Color="#FFA78BFA" Offset="1" />
+                                                                    </LinearGradientBrush>
+                                                                </Rectangle.Fill>
+                                                            </Rectangle>
+                                                            <Border x:Name="border" Background="{TemplateBinding Background}"
+                                                                    CornerRadius="8" Padding="10,8" Margin="6,0,2,0">
+                                                                <ContentPresenter />
+                                                            </Border>
+                                                        </Grid>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="border" Property="Background"
+                                                                        Value="{DynamicResource SidebarItemHoverBrush}" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="border" Property="Background"
+                                                                        Value="{DynamicResource SidebarItemSelectedBrush}" />
+                                                                <Setter TargetName="activeBar" Property="Opacity" Value="1" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="WorkspaceItem_PreviewMouseDown" />
+                                            <EventSetter Event="PreviewMouseMove" Handler="WorkspaceItem_PreviewMouseMove" />
+                                            <EventSetter Event="Drop" Handler="WorkspaceItem_Drop" />
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </TabItem>
+                            <TabItem x:Name="ExplorerTab" Header="Explorer">
+                                <controls:ExplorerSidebar x:Name="ExplorerSidebarControl"
+                                                          DataContext="{Binding SelectedWorkspace.Explorer}" />
+                            </TabItem>
+                        </TabControl>
 
                         <!-- Sidebar footer -->
                         <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}"
@@ -344,7 +370,7 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                                                    Margin="0,0,8,0" Opacity="0.6" />
-                                        <TextBlock Text="New Workspace" FontSize="12" />
+                                        <TextBlock x:Name="SidebarNewWorkspaceLabel" Text="New Workspace" FontSize="12" />
                                     </StackPanel>
                                 </Button>
 
@@ -368,13 +394,19 @@
                                             Style="{StaticResource CmuxButton}"
                                             HorizontalAlignment="Stretch">
                                         <Grid>
-                                            <StackPanel Orientation="Horizontal">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,8,0"
+                                                        VerticalAlignment="Center">
                                                 <TextBlock Text="&#xEA8F;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                                           Margin="0,0,8,0" Opacity="0.6" />
-                                                <TextBlock Text="Notifications" FontSize="12" />
+                                                           Margin="0,0,8,0" Opacity="0.6" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="SidebarNotificationsLabel" Text="Notifications" FontSize="12"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
-                                            <Border CornerRadius="10"
-                                                    Padding="6,2" HorizontalAlignment="Right"
+                                            <Border Grid.Column="1" CornerRadius="10"
+                                                    Padding="6,2" VerticalAlignment="Center"
                                                     Visibility="{Binding TotalUnreadCount, Converter={StaticResource IntToVisibility}}">
                                                 <Border.Background>
                                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
@@ -463,8 +495,12 @@
                             </Button>
                             <Rectangle Width="1" Height="16" Fill="{DynamicResource BorderBrush}" Margin="4,0" />
                             <Button x:Name="ToolbarAgentChatButton" Style="{StaticResource IconButton}" ToolTip="Toggle Agent Chat (Ctrl+Shift+A)"
-                                    Click="ToggleAgentChat_Click">
-                                <TextBlock Text="&#xE11B;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
+                                    Click="ToggleAgentChat_Click" MinWidth="34" Padding="4,2">
+                                <Border x:Name="ToolbarAgentChatBadge" CornerRadius="4" Padding="6,3" VerticalAlignment="Center"
+                                        Background="{DynamicResource AccentBrush}" SnapsToDevicePixels="True" UseLayoutRounding="True">
+                                    <TextBlock x:Name="ToolbarAgentAiLabel" Text="AI" FontWeight="Bold" FontSize="10"
+                                               Foreground="White" FontFamily="Segoe UI Variable Display, Segoe UI, system-ui, sans-serif" />
+                                </Border>
                             </Button>
                         </StackPanel>
                     </Border>
