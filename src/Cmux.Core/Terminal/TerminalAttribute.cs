@@ -21,22 +21,29 @@ public struct TerminalColor : IEquatable<TerminalColor>
     public byte B;
     public bool IsDefault;
 
+    /// <summary>
+    /// When >= 0, this color was created from a palette index (0-15).
+    /// The renderer should resolve it against the current theme palette at paint time.
+    /// -1 means "not indexed" (true-color or default).
+    /// </summary>
+    public sbyte PaletteIndex;
+
     public TerminalColor(byte r, byte g, byte b)
     {
         R = r;
         G = g;
         B = b;
         IsDefault = false;
+        PaletteIndex = -1;
     }
 
-    public static TerminalColor Default => new() { IsDefault = true };
+    public static TerminalColor Default => new() { IsDefault = true, PaletteIndex = -1 };
 
     public static TerminalColor FromIndex(int index)
     {
-        // Standard 256-color lookup
         if (index < 16)
         {
-            return index switch
+            var c = index switch
             {
                 0 => new(0x00, 0x00, 0x00),
                 1 => new(0xAA, 0x00, 0x00),
@@ -56,6 +63,8 @@ public struct TerminalColor : IEquatable<TerminalColor>
                 15 => new(0xFF, 0xFF, 0xFF),
                 _ => Default,
             };
+            c.PaletteIndex = (sbyte)index;
+            return c;
         }
 
         if (index < 232)

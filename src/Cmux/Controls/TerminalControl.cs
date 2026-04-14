@@ -469,7 +469,14 @@ public class TerminalControl : FrameworkElement
                     }
 
                     if (isSelected && _theme.SelectionBackground.HasValue)
+                    {
                         cellBg = _theme.SelectionBackground.Value;
+                        if (cellFg.IsDefault || IsDarkOnLight(cellFg, cellBg))
+                            cellFg = new TerminalColor(0xFF, 0xFF, 0xFF);
+                    }
+
+                    cellFg = ResolvePalette(cellFg);
+                    cellBg = ResolvePalette(cellBg);
 
                     // Draw cell background
                     if (!cellBg.IsDefault)
@@ -684,6 +691,19 @@ public class TerminalControl : FrameworkElement
 
     private static Color ToWpfColor(TerminalColor c) =>
         c.IsDefault ? Colors.Transparent : Color.FromRgb(c.R, c.G, c.B);
+
+    private TerminalColor ResolvePalette(TerminalColor c)
+    {
+        if (c.PaletteIndex >= 0 && c.PaletteIndex < 16 && _theme.Palette.Length > c.PaletteIndex)
+            return _theme.Palette[c.PaletteIndex];
+        return c;
+    }
+
+    private static bool IsDarkOnLight(TerminalColor fg, TerminalColor bg)
+    {
+        static double Lum(TerminalColor c) => 0.299 * c.R + 0.587 * c.G + 0.114 * c.B;
+        return Lum(fg) < 160 && Lum(bg) < 160;
+    }
 
     // --- Mouse reporting ---
 

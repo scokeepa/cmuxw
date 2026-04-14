@@ -16,25 +16,38 @@ internal static class ThemeManager
         if (Application.Current == null)
             return;
 
-        // Cursor-style neutrals: chrome #F3F3F3, terminal pane chrome #F8F8F8 (see TerminalHostBackgroundBrush).
+        // ── Light palette ──────────────────────────────────────────
+        // Layer 1  Shell chrome / sidebar / toolbar    #F3F3F3
+        // Layer 2  Terminal pane host                  #FFFFFF  (white, like Cursor editor bg)
+        // Layer 3  Input fields / cards                #FFFFFF
+        // Text     Primary #1E1E1E   Secondary #616161
+        // Border   #D5D5D5 (visible on #F3 bg)  Divider #E0E0E0
+        //
+        // ── Dark palette ─────────────────────────────────────────
+        // Layer 1  Shell chrome                        #1E1E1E
+        // Layer 2  Sidebar                             #181818
+        // Layer 3  Terminal pane host                  #141420
+        // Text     Primary #CCCCCC   Secondary #858585
+        // Border   #3E3E42           Divider #3E3E42
+
         ApplyBrushColor("BackgroundBrush", useLight ? "#FFF3F3F3" : "#FF1E1E1E");
         ApplyBrushColor("SidebarBackgroundBrush", useLight ? "#FFF3F3F3" : "#FF181818");
-        ApplyBrushColor("SidebarItemHoverBrush", useLight ? "#FFE8E8E8" : "#FF2A2D2E");
-        ApplyBrushColor("SidebarItemSelectedBrush", useLight ? "#FFDFE0E2" : "#FF37373D");
-        ApplyBrushColor("ForegroundBrush", useLight ? "#FF383A42" : "#FFCCCCCC");
-        ApplyBrushColor("ForegroundDimBrush", useLight ? "#FF6E6E6E" : "#FF858585");
-        ApplyBrushColor("BorderBrush", useLight ? "#FFE5E5E5" : "#FF3E3E42");
+        ApplyBrushColor("SidebarItemHoverBrush", useLight ? "#FFE0E0E0" : "#FF2A2D2E");
+        ApplyBrushColor("SidebarItemSelectedBrush", useLight ? "#FFD0D3D8" : "#FF37373D");
+        ApplyBrushColor("ForegroundBrush", useLight ? "#FF111111" : "#FFCCCCCC");
+        ApplyBrushColor("ForegroundDimBrush", useLight ? "#FF555555" : "#FF858585");
+        ApplyBrushColor("BorderBrush", useLight ? "#FFD5D5D5" : "#FF3E3E42");
         ApplyBrushColor("SurfaceTabBackgroundBrush", useLight ? "#FFF3F3F3" : "#FF181818");
-        ApplyBrushColor("SurfaceTabSelectedBrush", useLight ? "#FFE8E8E8" : "#FF2A2D2E");
+        ApplyBrushColor("SurfaceTabSelectedBrush", useLight ? "#FFFFFFFF" : "#FF2A2D2E");
         ApplyBrushColor("DividerBrush", useLight ? "#FFE0E0E0" : "#FF3E3E42");
         ApplyBrushColor("SurfaceBrush", useLight ? "#FFF3F3F3" : "#FF1E1E1E");
-        ApplyBrushColor("SurfaceHighBrush", useLight ? "#FFECECEC" : "#FF252526");
-        ApplyBrushColor("TerminalHostBackgroundBrush", useLight ? "#FFF8F8F8" : "#FF141420");
+        ApplyBrushColor("SurfaceHighBrush", useLight ? "#FFEAEAEA" : "#FF252526");
+        ApplyBrushColor("TerminalHostBackgroundBrush", useLight ? "#FFFFFFFF" : "#FF141420");
         ApplyBrushColor("InputBackgroundBrush", useLight ? "#FFFFFFFF" : "#FF3C3C3C");
-        ApplyBrushColor("OverlayBackgroundBrush", useLight ? "#E6FFFFFF" : "#E61E1E1E");
-        ApplyBrushColor("ChromeHoverWashBrush", useLight ? "#14000000" : "#26FFFFFF");
-        ApplyBrushColor("ChromeActiveWashBrush", useLight ? "#1F000000" : "#33FFFFFF");
-        ApplyBrushColor("AgentChatBubbleBrush", useLight ? "#FFF0F0F0" : "#33252525");
+        ApplyBrushColor("OverlayBackgroundBrush", useLight ? "#E6F3F3F3" : "#E61E1E1E");
+        ApplyBrushColor("ChromeHoverWashBrush", useLight ? "#1A000000" : "#26FFFFFF");
+        ApplyBrushColor("ChromeActiveWashBrush", useLight ? "#26000000" : "#33FFFFFF");
+        ApplyBrushColor("AgentChatBubbleBrush", useLight ? "#FFE8E8E8" : "#33252525");
 
         ApplySystemChrome(useLight);
 
@@ -65,19 +78,19 @@ internal static class ThemeManager
         if (useLight)
         {
             SetBrush(SystemColors.WindowBrushKey, "#FFFFFFFF");
-            SetBrush(SystemColors.WindowTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.WindowTextBrushKey, "#FF111111");
             SetBrush(SystemColors.ControlBrushKey, "#FFFFFFFF");
-            SetBrush(SystemColors.ControlTextBrushKey, "#FF383A42");
-            SetBrush(SystemColors.HighlightBrushKey, "#FFDFE0E2");
-            SetBrush(SystemColors.HighlightTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.ControlTextBrushKey, "#FF111111");
+            SetBrush(SystemColors.HighlightBrushKey, "#FFD0D3D8");
+            SetBrush(SystemColors.HighlightTextBrushKey, "#FF111111");
             SetBrush(SystemColors.MenuBrushKey, "#FFFFFFFF");
-            SetBrush(SystemColors.MenuTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.MenuTextBrushKey, "#FF111111");
             SetBrush(SystemColors.MenuBarBrushKey, "#FFF3F3F3");
-            SetBrush(SystemColors.MenuHighlightBrushKey, "#FFDFE0E2");
+            SetBrush(SystemColors.MenuHighlightBrushKey, "#FFD0D3D8");
             SetBrush(SystemColors.ControlLightBrushKey, "#FFF3F3F3");
             SetBrush(SystemColors.ControlLightLightBrushKey, "#FFFFFFFF");
-            SetBrush(SystemColors.ControlDarkBrushKey, "#FFE5E5E5");
-            SetBrush(SystemColors.ControlDarkDarkBrushKey, "#FF9CA3AF");
+            SetBrush(SystemColors.ControlDarkBrushKey, "#FFD5D5D5");
+            SetBrush(SystemColors.ControlDarkDarkBrushKey, "#FF808080");
         }
         else
         {
