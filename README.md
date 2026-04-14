@@ -13,6 +13,7 @@ Windows-native terminal multiplexer inspired by `cmux`, built with WPF + ConPTY.
 ![Main workspace](assets/screenshots/1.jpg)
 ![Snippets panel](assets/screenshots/2.jpg)
 ![Command logs](assets/screenshots/3.jpg)
+![Browser + Explorer](assets/screenshots/4.jpg)
 
 ### Quick start
 ```powershell
