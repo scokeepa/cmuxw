@@ -51,6 +51,22 @@ public partial class BrowserControl : UserControl
         FocusRequested = null;
     }
 
+    /// <summary>
+    /// WebView2 is HWND-hosted and paints above most WPF elements (including in-window overlays).
+    /// Hide the web surface while command palette / snippet picker are open so modals stay readable.
+    /// </summary>
+    public void SetWebViewAirspaceSuppressed(bool suppress)
+    {
+        try
+        {
+            WebView.Visibility = suppress ? Visibility.Hidden : Visibility.Visible;
+        }
+        catch
+        {
+            // ignore
+        }
+    }
+
     private async void InitializeWebView()
     {
         try

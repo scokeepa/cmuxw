@@ -43,7 +43,12 @@ public partial class MainWindow : Window
 
         // Wire snippet picker events
         SnippetPickerControl.SnippetSelected += OnSnippetSelected;
-        SnippetPickerControl.Closed += () => SnippetPickerControl.Visibility = Visibility.Collapsed;
+        SnippetPickerControl.Closed += () =>
+        {
+            if (SnippetPickerControl.Visibility == Visibility.Visible)
+                BrowserPaneRegistry.PopWebViewAirspaceSuppress();
+            SnippetPickerControl.Visibility = Visibility.Collapsed;
+        };
 
         // Wire inline search events from tab bar
         SurfaceTabBarControl.SearchTextChanged += OnSearchTextChanged;
@@ -78,6 +83,8 @@ public partial class MainWindow : Window
         var theme = Cmux.Core.Config.TerminalThemes.GetEffective(settings);
 
         Opacity = Math.Clamp(settings.Opacity, 0.5, 1.0);
+
+        SplitPaneContainerControl.RefreshChromeForTheme();
 
         // Update all visible terminal controls
         foreach (var workspace in ViewModel.Workspaces)
@@ -200,6 +207,28 @@ public partial class MainWindow : Window
     private void WorkspaceFilterBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
         _workspaceView?.Refresh();
+    }
+
+    private void SidebarResetSession_Click(object sender, RoutedEventArgs e)
+    {
+        WorkspaceFilterBox.Text = "";
+        _workspaceView?.Refresh();
+        var wsId = ViewModel.SelectedWorkspace?.Workspace.Id;
+        if (!string.IsNullOrWhiteSpace(wsId))
+            App.NotificationService.MarkWorkspaceAsRead(wsId);
+    }
+
+    private void AgentResetVisibleThread_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_selectedAgentThreadId))
+        {
+            MessageBox.Show(L.T("Select a thread to clear."), L.T("Agent"), MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        App.AgentConversationStore.ClearMessagesForThread(_selectedAgentThreadId);
+        LoadAgentMessages(_selectedAgentThreadId);
+        RefreshAgentThreads();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -798,10 +827,12 @@ public partial class MainWindow : Window
     {
         if (SnippetPickerControl.Visibility == Visibility.Visible)
         {
+            BrowserPaneRegistry.PopWebViewAirspaceSuppress();
             SnippetPickerControl.Visibility = Visibility.Collapsed;
         }
         else
         {
+            BrowserPaneRegistry.PushWebViewAirspaceSuppress();
             SnippetPickerControl.RefreshList();
             SnippetPickerControl.Visibility = Visibility.Visible;
             SnippetPickerControl.FocusSearch();
@@ -818,6 +849,9 @@ public partial class MainWindow : Window
             session?.Write(content);
             App.SnippetService.IncrementUseCount(snippet.Id);
         }
+
+        if (SnippetPickerControl.Visibility == Visibility.Visible)
+            BrowserPaneRegistry.PopWebViewAirspaceSuppress();
         SnippetPickerControl.Visibility = Visibility.Collapsed;
     }
 
@@ -1232,28 +1266,143 @@ public partial class MainWindow : Window
         var surface = ViewModel.SelectedWorkspace?.SelectedSurface;
         if (surface == null) return;
 
-        NormalizeToSinglePane(surface);
+        var target = cols * rows;
+        var n = surface.RootNode.GetLeaves().Count();
+        var layout = Cmux.Core.Models.SplitNode.ComputePaneGridLayout(surface.RootNode);
+        var dense = Cmux.Core.Models.SplitNode.IsDenseRectangularGrid(layout, n);
 
-        for (int c = 1; c < cols; c++)
-            surface.SplitRight();
-
-        if (rows > 1)
+        if (n > target)
         {
-            var columnPaneIds = surface.RootNode.GetLeaves()
-                .Select(l => l.PaneId)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Cast<string>()
-                .ToList();
-
-            foreach (var paneId in columnPaneIds)
+            List<string> toClose;
+            if (dense)
             {
-                surface.FocusPane(paneId);
-                for (int r = 1; r < rows; r++)
-                    surface.SplitDown();
+                toClose = surface.GetOrderedPaneIdsToCloseForGridResize(cols, rows).ToList();
             }
+            else
+            {
+                var keep = ComputeKeepPaneIdsForShrink(surface, target);
+                var keepSet = keep.ToHashSet(StringComparer.Ordinal);
+                toClose = surface.RootNode.GetLeaves()
+                    .Select(l => l.PaneId!)
+                    .Where(id => !keepSet.Contains(id))
+                    .Reverse()
+                    .ToList();
+            }
+
+            if (toClose.Count > 0)
+            {
+                var line = string.Format(L.T("Layout shrink will close N panes"), toClose.Count);
+                if (toClose.Any(surface.PaneHasNotableActivity))
+                    line += "\n\n" + L.T("Layout shrink active sessions hint");
+
+                if (MessageBox.Show(
+                        line,
+                        L.T("Change layout"),
+                        MessageBoxButton.OKCancel,
+                        MessageBoxImage.Warning) != MessageBoxResult.OK)
+                    return;
+
+                foreach (var id in toClose)
+                    surface.ClosePane(id);
+            }
+
+            n = surface.RootNode.GetLeaves().Count();
+            layout = Cmux.Core.Models.SplitNode.ComputePaneGridLayout(surface.RootNode);
+            dense = Cmux.Core.Models.SplitNode.IsDenseRectangularGrid(layout, n);
+        }
+
+        if (n == target)
+        {
+            if (!Cmux.Core.Models.SplitNode.MatchesRequestedGrid(layout, cols, rows, n))
+            {
+                var ids = surface.RootNode.GetLeaves()
+                    .Select(l => l.PaneId!)
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToList();
+                if (ids.Count == target)
+                    surface.ReplaceRootNode(Cmux.Core.Models.SplitNode.BuildDenseGridRowMajor(ids, cols, rows));
+            }
+
+            surface.EqualizePanes();
+            return;
+        }
+
+        if (n < target)
+        {
+            if (dense)
+            {
+                surface.ExpandDenseGridTo(cols, rows);
+                return;
+            }
+
+            for (var c = 1; c < cols; c++)
+                surface.SplitRight();
+
+            if (rows > 1)
+            {
+                var columnPaneIds = surface.RootNode.GetLeaves()
+                    .Select(l => l.PaneId)
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Cast<string>()
+                    .ToList();
+
+                foreach (var paneId in columnPaneIds)
+                {
+                    surface.FocusPane(paneId);
+                    for (var r = 1; r < rows; r++)
+                        surface.SplitDown();
+                }
+            }
+
+            layout = Cmux.Core.Models.SplitNode.ComputePaneGridLayout(surface.RootNode);
+            n = surface.RootNode.GetLeaves().Count();
+            if (n == target && !Cmux.Core.Models.SplitNode.MatchesRequestedGrid(layout, cols, rows, n))
+            {
+                var ids = surface.RootNode.GetLeaves()
+                    .Select(l => l.PaneId!)
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToList();
+                if (ids.Count == target)
+                    surface.ReplaceRootNode(Cmux.Core.Models.SplitNode.BuildDenseGridRowMajor(ids, cols, rows));
+            }
+
+            surface.EqualizePanes();
+            return;
         }
 
         surface.EqualizePanes();
+    }
+
+    /// <summary>Pane ids to keep when shrinking a non-dense layout: focused first, then activity, then leaf order.</summary>
+    private static List<string> ComputeKeepPaneIdsForShrink(SurfaceViewModel surface, int target)
+    {
+        var all = surface.RootNode.GetLeaves()
+            .Select(l => l.PaneId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Cast<string>()
+            .ToList();
+
+        var index = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var i = 0; i < all.Count; i++)
+            index[all[i]] = i;
+
+        var focus = surface.FocusedPaneId;
+        var keep = new List<string>(target);
+
+        if (!string.IsNullOrWhiteSpace(focus) && all.Contains(focus))
+            keep.Add(focus!);
+
+        foreach (var id in all
+                     .Where(id => !keep.Contains(id, StringComparer.Ordinal))
+                     .OrderByDescending(id => surface.PaneHasNotableActivity(id) ? 1 : 0)
+                     .ThenBy(id => index[id]))
+        {
+            if (keep.Count >= target)
+                break;
+            keep.Add(id);
+        }
+
+        return keep;
     }
 
     private void ApplyMainStackLayout()
@@ -1261,22 +1410,78 @@ public partial class MainWindow : Window
         var surface = ViewModel.SelectedWorkspace?.SelectedSurface;
         if (surface == null) return;
 
+        var n = surface.RootNode.GetLeaves().Count();
+        if (n == 3 && IsMainStackLayout(surface.RootNode))
+        {
+            surface.EqualizePanes();
+            return;
+        }
+
+        if (n == 1)
+        {
+            surface.SplitRight();
+
+            var rightPaneId = surface.RootNode.GetLeaves()
+                .Skip(1)
+                .Select(l => l.PaneId)
+                .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id));
+
+            if (!string.IsNullOrWhiteSpace(rightPaneId))
+            {
+                surface.FocusPane(rightPaneId);
+                surface.SplitDown();
+                surface.EqualizePanes();
+            }
+
+            return;
+        }
+
+        if (n > 1)
+        {
+            var line = string.Format(L.T("Main stack layout will close N panes"), Math.Max(0, n - 1));
+            if (surface.RootNode.GetLeaves().Any(l => l.PaneId != null && surface.PaneHasNotableActivity(l.PaneId!)))
+                line += "\n\n" + L.T("Layout shrink active sessions hint");
+
+            if (MessageBox.Show(
+                    line,
+                    L.T("Change layout"),
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Warning) != MessageBoxResult.OK)
+                return;
+        }
+
         NormalizeToSinglePane(surface);
 
-        // Main pane on left, stack of 2 on right
         surface.SplitRight();
 
-        var rightPaneId = surface.RootNode.GetLeaves()
+        var stackPaneId = surface.RootNode.GetLeaves()
             .Skip(1)
             .Select(l => l.PaneId)
             .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id));
 
-        if (!string.IsNullOrWhiteSpace(rightPaneId))
+        if (!string.IsNullOrWhiteSpace(stackPaneId))
         {
-            surface.FocusPane(rightPaneId);
+            surface.FocusPane(stackPaneId);
             surface.SplitDown();
             surface.EqualizePanes();
         }
+    }
+
+    /// <summary>Detects the standard Main+Stack (1 main + 2 horizontal stack) three-pane tree.</summary>
+    private static bool IsMainStackLayout(Cmux.Core.Models.SplitNode root)
+    {
+        if (root is not { IsLeaf: false, Direction: Cmux.Core.Models.SplitDirection.Vertical, First: not null, Second: not null })
+            return false;
+        if (!root.First.IsLeaf || root.Second.IsLeaf)
+            return false;
+
+        var stack = root.Second;
+        if (stack is not { IsLeaf: false, Direction: Cmux.Core.Models.SplitDirection.Horizontal, First: not null, Second: not null })
+            return false;
+
+        return stack.First.IsLeaf
+            && stack.Second.IsLeaf
+            && root.GetLeaves().Count() == 3;
     }
 
     private static void NormalizeToSinglePane(SurfaceViewModel surface)

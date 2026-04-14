@@ -16,20 +16,86 @@ internal static class ThemeManager
         if (Application.Current == null)
             return;
 
-        ApplyBrushColor("BackgroundBrush", useLight ? "#FFF5F7FA" : "#FF0F0F0F");
-        ApplyBrushColor("SidebarBackgroundBrush", useLight ? "#FFEFF2F8" : "#FF0A0A0A");
-        ApplyBrushColor("SidebarItemHoverBrush", useLight ? "#FFDDE7FF" : "#FF1A1A2E");
-        ApplyBrushColor("SidebarItemSelectedBrush", useLight ? "#FFC9D8FF" : "#FF252547");
-        ApplyBrushColor("ForegroundBrush", useLight ? "#FF1F2937" : "#FFE2E2E9");
-        ApplyBrushColor("ForegroundDimBrush", useLight ? "#FF4B5563" : "#FF6B6B80");
-        ApplyBrushColor("BorderBrush", useLight ? "#FFD3DBE8" : "#FF2A2A3C");
-        ApplyBrushColor("SurfaceTabBackgroundBrush", useLight ? "#FFF1F5FB" : "#FF161622");
-        ApplyBrushColor("SurfaceTabSelectedBrush", useLight ? "#FFDDE7FF" : "#FF1E1E32");
-        ApplyBrushColor("DividerBrush", useLight ? "#FFC6D0E0" : "#FF2E2E42");
-        ApplyBrushColor("SurfaceBrush", useLight ? "#FFFFFFFF" : "#FF141420");
-        ApplyBrushColor("SurfaceHighBrush", useLight ? "#FFF7FAFF" : "#FF1C1C30");
-        ApplyBrushColor("InputBackgroundBrush", useLight ? "#FFFFFFFF" : "#FF1A1A1A");
-        ApplyBrushColor("OverlayBackgroundBrush", useLight ? "#F0FFFFFF" : "#F2141414");
+        // Cursor-style neutrals: chrome #F3F3F3, terminal pane chrome #F8F8F8 (see TerminalHostBackgroundBrush).
+        ApplyBrushColor("BackgroundBrush", useLight ? "#FFF3F3F3" : "#FF1E1E1E");
+        ApplyBrushColor("SidebarBackgroundBrush", useLight ? "#FFF3F3F3" : "#FF181818");
+        ApplyBrushColor("SidebarItemHoverBrush", useLight ? "#FFE8E8E8" : "#FF2A2D2E");
+        ApplyBrushColor("SidebarItemSelectedBrush", useLight ? "#FFDFE0E2" : "#FF37373D");
+        ApplyBrushColor("ForegroundBrush", useLight ? "#FF383A42" : "#FFCCCCCC");
+        ApplyBrushColor("ForegroundDimBrush", useLight ? "#FF6E6E6E" : "#FF858585");
+        ApplyBrushColor("BorderBrush", useLight ? "#FFE5E5E5" : "#FF3E3E42");
+        ApplyBrushColor("SurfaceTabBackgroundBrush", useLight ? "#FFF3F3F3" : "#FF181818");
+        ApplyBrushColor("SurfaceTabSelectedBrush", useLight ? "#FFE8E8E8" : "#FF2A2D2E");
+        ApplyBrushColor("DividerBrush", useLight ? "#FFE0E0E0" : "#FF3E3E42");
+        ApplyBrushColor("SurfaceBrush", useLight ? "#FFF3F3F3" : "#FF1E1E1E");
+        ApplyBrushColor("SurfaceHighBrush", useLight ? "#FFECECEC" : "#FF252526");
+        ApplyBrushColor("TerminalHostBackgroundBrush", useLight ? "#FFF8F8F8" : "#FF141420");
+        ApplyBrushColor("InputBackgroundBrush", useLight ? "#FFFFFFFF" : "#FF3C3C3C");
+        ApplyBrushColor("OverlayBackgroundBrush", useLight ? "#E6FFFFFF" : "#E61E1E1E");
+        ApplyBrushColor("ChromeHoverWashBrush", useLight ? "#14000000" : "#26FFFFFF");
+        ApplyBrushColor("ChromeActiveWashBrush", useLight ? "#1F000000" : "#33FFFFFF");
+        ApplyBrushColor("AgentChatBubbleBrush", useLight ? "#FFF0F0F0" : "#33252525");
+
+        ApplySystemChrome(useLight);
+
+        // Do NOT use Application.ThemeMode — it force-loads the WPF Fluent theme dictionary
+        // which overrides every custom brush we set above, breaking both dark and light modes.
+    }
+
+    /// <summary>
+    /// WPF ComboBox, Menu, and ListBox use <see cref="SystemColors"/> resource keys.
+    /// Without updating these, parts of the UI stay dark when switching to a light app palette.
+    /// </summary>
+    private static void ApplySystemChrome(bool useLight)
+    {
+        var r = Application.Current!.Resources;
+
+        void SetBrush(object key, string hex)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(hex)!;
+            if (r[key] is SolidColorBrush existing && !existing.IsFrozen)
+            {
+                existing.Color = color;
+                return;
+            }
+
+            r[key] = new SolidColorBrush(color);
+        }
+
+        if (useLight)
+        {
+            SetBrush(SystemColors.WindowBrushKey, "#FFFFFFFF");
+            SetBrush(SystemColors.WindowTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.ControlBrushKey, "#FFFFFFFF");
+            SetBrush(SystemColors.ControlTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.HighlightBrushKey, "#FFDFE0E2");
+            SetBrush(SystemColors.HighlightTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.MenuBrushKey, "#FFFFFFFF");
+            SetBrush(SystemColors.MenuTextBrushKey, "#FF383A42");
+            SetBrush(SystemColors.MenuBarBrushKey, "#FFF3F3F3");
+            SetBrush(SystemColors.MenuHighlightBrushKey, "#FFDFE0E2");
+            SetBrush(SystemColors.ControlLightBrushKey, "#FFF3F3F3");
+            SetBrush(SystemColors.ControlLightLightBrushKey, "#FFFFFFFF");
+            SetBrush(SystemColors.ControlDarkBrushKey, "#FFE5E5E5");
+            SetBrush(SystemColors.ControlDarkDarkBrushKey, "#FF9CA3AF");
+        }
+        else
+        {
+            SetBrush(SystemColors.WindowBrushKey, "#FF1E1E1E");
+            SetBrush(SystemColors.WindowTextBrushKey, "#FFCCCCCC");
+            SetBrush(SystemColors.ControlBrushKey, "#FF252526");
+            SetBrush(SystemColors.ControlTextBrushKey, "#FFCCCCCC");
+            SetBrush(SystemColors.HighlightBrushKey, "#FF37373D");
+            SetBrush(SystemColors.HighlightTextBrushKey, "#FFCCCCCC");
+            SetBrush(SystemColors.MenuBrushKey, "#FF252526");
+            SetBrush(SystemColors.MenuTextBrushKey, "#FFCCCCCC");
+            SetBrush(SystemColors.MenuBarBrushKey, "#FF181818");
+            SetBrush(SystemColors.MenuHighlightBrushKey, "#FF37373D");
+            SetBrush(SystemColors.ControlLightBrushKey, "#FF3E3E42");
+            SetBrush(SystemColors.ControlLightLightBrushKey, "#FF3E3E42");
+            SetBrush(SystemColors.ControlDarkBrushKey, "#FF3E3E42");
+            SetBrush(SystemColors.ControlDarkDarkBrushKey, "#FF3E3E42");
+        }
     }
 
     private static bool IsSystemLightTheme()
@@ -60,17 +126,22 @@ internal static class ThemeManager
 
     private static void ApplyBrushColor(string key, string hex)
     {
-        if (Application.Current.Resources[key] is not SolidColorBrush brush)
+        var app = Application.Current;
+        if (app == null)
             return;
 
-        var color = (Color)ColorConverter.ConvertFromString(hex);
-        if (brush.IsFrozen)
+        var color = (Color)ColorConverter.ConvertFromString(hex)!;
+
+        // App-level Resources[key] has highest priority in the WPF lookup chain,
+        // beating any merged-dictionary entry (DarkTheme.xaml).  DynamicResource
+        // bindings throughout the app automatically pick up the new value.
+        if (app.Resources[key] is SolidColorBrush existing && !existing.IsFrozen)
         {
-            // Some merged resources are frozen Freezables, so mutate by replacement.
-            Application.Current.Resources[key] = new SolidColorBrush(color);
-            return;
+            existing.Color = color;
         }
-
-        brush.Color = color;
+        else
+        {
+            app.Resources[key] = new SolidColorBrush(color);
+        }
     }
 }

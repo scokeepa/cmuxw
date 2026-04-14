@@ -2,7 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Cmux.ViewModels"
-             Height="38" Background="{StaticResource SurfaceTabBackgroundBrush}">
+             Height="38" Background="{DynamicResource SurfaceTabBackgroundBrush}">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -44,7 +44,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="12"
-                                       Foreground="{StaticResource ForegroundDimBrush}"
+                                       Foreground="{DynamicResource ForegroundDimBrush}"
                                        VerticalAlignment="Center"
                                        x:Name="tabText" />
                             <Button Grid.Column="1" Content="&#xE10A;" FontFamily="Segoe MDL2 Assets"
@@ -78,9 +78,9 @@
                                 </MultiBinding>
                             </DataTrigger.Binding>
                             <Setter TargetName="tabBorder" Property="Background"
-                                    Value="{StaticResource SurfaceTabSelectedBrush}" />
+                                    Value="{DynamicResource SurfaceTabSelectedBrush}" />
                             <Setter TargetName="tabText" Property="Foreground"
-                                    Value="{StaticResource ForegroundBrush}" />
+                                    Value="{DynamicResource ForegroundBrush}" />
                             <Setter TargetName="tabText" Property="FontWeight" Value="SemiBold" />
                             <Setter TargetName="activeIndicator" Property="Opacity" Value="1" />
                         </DataTrigger>
@@ -88,30 +88,6 @@
                         <Trigger SourceName="tabBorder" Property="IsMouseOver" Value="True">
                             <Setter TargetName="closeBtn" Property="Opacity" Value="0.7" />
                         </Trigger>
-                        <!-- Hover animation (non-selected tabs) -->
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding IsMouseOver, ElementName=tabBorder}" Value="True" />
-                            </MultiDataTrigger.Conditions>
-                            <MultiDataTrigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="tabBg"
-                                                        Storyboard.TargetProperty="Color"
-                                                        To="#FF1A1A2E" Duration="0:0:0.15" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </MultiDataTrigger.EnterActions>
-                            <MultiDataTrigger.ExitActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <ColorAnimation Storyboard.TargetName="tabBg"
-                                                        Storyboard.TargetProperty="Color"
-                                                        To="Transparent" Duration="0:0:0.15" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </MultiDataTrigger.ExitActions>
-                        </MultiDataTrigger>
                     </DataTemplate.Triggers>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -119,7 +95,7 @@
 
         <!-- Inline search bar -->
         <Border Grid.Column="1" CornerRadius="6" Margin="4"
-                Background="{StaticResource SurfaceHighBrush}" VerticalAlignment="Center"
+                Background="{DynamicResource SurfaceHighBrush}" VerticalAlignment="Center"
                 Height="26" Width="220">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -129,17 +105,17 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
-                           FontSize="11" Foreground="{StaticResource ForegroundDimBrush}"
+                           FontSize="11" Foreground="{DynamicResource ForegroundDimBrush}"
                            VerticalAlignment="Center" Margin="6,0,4,0" />
                 <TextBox x:Name="SearchInput" Grid.Column="1"
-                         Background="Transparent" Foreground="{StaticResource ForegroundBrush}"
-                         CaretBrush="{StaticResource AccentBrush}"
+                         Background="Transparent" Foreground="{DynamicResource ForegroundBrush}"
+                         CaretBrush="{DynamicResource AccentBrush}"
                          BorderThickness="0" FontSize="12" Padding="2,2"
                          VerticalContentAlignment="Center"
                          TextChanged="SearchInput_TextChanged"
                          KeyDown="SearchInput_KeyDown" />
                 <TextBlock x:Name="MatchCount" Grid.Column="2" Text=""
-                           Foreground="{StaticResource ForegroundDimBrush}" FontSize="10"
+                           Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10"
                            VerticalAlignment="Center" Margin="4,0" />
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,2,0">
                     <Button Content="&#xE010;" FontFamily="Segoe MDL2 Assets"
@@ -160,9 +136,9 @@
 
         <!-- Inline rename overlay -->
         <TextBox x:Name="TabRenameBox" Visibility="Collapsed"
-                 FontSize="12" Background="{StaticResource SidebarItemHoverBrush}"
-                 Foreground="{StaticResource ForegroundBrush}"
-                 BorderBrush="{StaticResource AccentBrush}" BorderThickness="1" Padding="4,2"
+                 FontSize="12" Background="{DynamicResource SidebarItemHoverBrush}"
+                 Foreground="{DynamicResource ForegroundBrush}"
+                 BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1" Padding="4,2"
                  VerticalAlignment="Center" HorizontalAlignment="Left"
                  MinWidth="80" MaxWidth="200"
                  LostFocus="TabRenameBox_LostFocus" KeyDown="TabRenameBox_KeyDown" />

@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.1.4 - 2026-04-14
+
+### Theme engine rewrite — Cursor-style light/dark mode
+- **Root cause fix**: DarkTheme.xaml brushes used `{StaticResource}` Color bindings which WPF froze at load time, making runtime theme switching silently fail. All brushes now use inline hex values so `.Color` mutation works.
+- **Root cause fix**: `ApplyBrushColor` now writes directly to `Application.Resources[key]` (highest priority in WPF lookup), guaranteeing `DynamicResource` bindings update everywhere.
+- **Root cause fix**: Removed `Application.ThemeMode` usage — the .NET 10 Fluent theme injection was force-overriding every custom brush, breaking both dark and light modes completely.
+- Light mode colors now match Cursor: chrome/sidebar `#F3F3F3`, terminal pane `#F8F8F8`, input fields `#FFFFFF`, text `#383A42`.
+- Dark mode colors match Cursor: chrome `#1E1E1E`, sidebar `#181818`, text `#CCCCCC`.
+- `SystemColors` (Window, Control, Menu, Highlight) updated for both modes so ComboBox dropdowns, context menus, and ListBox items render correct foreground/background.
+- DWM title bar frame (`DwmUseImmersiveDarkMode`) now re-applied on every theme switch via `WindowAppearance.RefreshDarkFrameForOpenWindows()`.
+- Terminal right-click context menu: replaced hardcoded dark colors with theme-aware brush lookups.
+- All sub-windows (`HistoryWindow`, `LogsWindow`, `ColorPickerWindow`, `TextPromptWindow`, `SessionVaultWindow`) converted from `StaticResource` to `DynamicResource` for `BackgroundBrush`.
+- ComboBox dropdown popup: added `TextElement.Foreground` on `DropDownBorder`, `ScrollViewer`, and `ContentSite` to fix invisible text in light mode.
+- Terminal `Default Light` palette: background `#F8F8F8`, yellow ANSI slots darkened to prevent invisible text on light backgrounds.
+
+### Layout & pane stability
+- Fixed toolbar layout change destroying all terminal sessions by replacing `NormalizeToSinglePane` with selective `ClosePane` + `SplitNode.BuildDenseGridRowMajor`.
+- Added `SurfaceViewModel.ReplaceRootNode` for safe tree reconstruction.
+- Added pane reset buttons and session clear logic per pane/sidebar/agent panel.
+- Settings > Behavior: added "Reset All Sessions" with confirmation dialog.
+
+### Other
+- `SplitPaneContainer.RefreshChromeForTheme()` — forces pane chrome rebuild on theme change so code-created borders pick up new brushes.
+- `BrowserControl.xaml`: `StaticResource` → `DynamicResource` for background.
+- Bumped version to `0.1.4`.
+
 ## v0.1.3 - 2026-04-14
 
 - Hardened named-pipe CLI transport so connect/write/read cannot hang indefinitely on Windows.
