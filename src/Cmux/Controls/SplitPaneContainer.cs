@@ -1,5 +1,7 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using System.Windows.Input;
 using System.Windows.Media;
 using Cmux.Core.Models;
@@ -24,10 +26,19 @@ public class SplitPaneContainer : ContentControl
     public event Action? SearchRequested;
 
     private static SolidColorBrush GetThemeBrush(string key) =>
-        Application.Current.Resources[key] as SolidColorBrush ?? Brushes.Transparent;
+        Application.Current?.TryFindResource(key) as SolidColorBrush ?? Brushes.Transparent;
 
-    private static Color GetThemeColor(string key) =>
-        Application.Current.Resources[key] is Color c ? c : Colors.Transparent;
+    private static Color GetThemeColor(string key)
+    {
+        if (Application.Current?.TryFindResource(key) is Color c)
+            return c;
+
+        if (string.Equals(key, "AccentColor", StringComparison.Ordinal)
+            && Application.Current?.TryFindResource("AccentBrush") is SolidColorBrush ab)
+            return ab.Color;
+
+        return Colors.Transparent;
+    }
 
     public SplitPaneContainer()
     {
@@ -40,6 +51,7 @@ public class SplitPaneContainer : ContentControl
         if (e.OldValue is SurfaceViewModel oldSurface)
         {
             oldSurface.PropertyChanged -= OnSurfacePropertyChanged;
+            oldSurface.PaneSessionReset -= OnPaneSessionReset;
         }
 
         // Clear terminal cache when switching surfaces/workspaces
@@ -54,6 +66,7 @@ public class SplitPaneContainer : ContentControl
         if (_surface != null)
         {
             _surface.PropertyChanged += OnSurfacePropertyChanged;
+            _surface.PaneSessionReset += OnPaneSessionReset;
             Rebuild();
         }
         else
@@ -73,6 +86,15 @@ public class SplitPaneContainer : ContentControl
         {
             Dispatcher.BeginInvoke(UpdateFocusState);
         }
+    }
+
+    private void OnPaneSessionReset(string paneId)
+    {
+        _terminalCache.Remove(paneId);
+        if (_browserCache.Remove(paneId, out _))
+            BrowserPaneRegistry.Unregister(paneId);
+
+        Dispatcher.BeginInvoke(Rebuild);
     }
 
     /// <summary>
@@ -231,7 +253,8 @@ public class SplitPaneContainer : ContentControl
         var headerGrid = new Grid();
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) }); // Focus indicator
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Title
-        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) }); // Close button
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) }); // Reset
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) }); // Close
 
         // Focus indicator (shows which pane is focused)
         var focusIndicator = new Border
@@ -258,6 +281,22 @@ public class SplitPaneContainer : ContentControl
         };
         Grid.SetColumn(titleText, 1);
 
+        var resetButton = new Button
+        {
+            Content = "\uE149",
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            FontSize = 10,
+            Width = 18,
+            Height = 18,
+            Background = Brushes.Transparent,
+            Foreground = GetThemeBrush("ForegroundDimBrush"),
+            BorderThickness = new Thickness(0),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = L.T("Reset pane session"),
+        };
+        resetButton.Click += (_, _) => _surface?.ResetPaneSession(paneId);
+        Grid.SetColumn(resetButton, 2);
+
         // Close button
         var closeButton = new Button
         {
@@ -272,10 +311,11 @@ public class SplitPaneContainer : ContentControl
             ToolTip = L.T("Close pane"),
         };
         closeButton.Click += (s, e) => _surface?.ClosePane(paneId);
-        Grid.SetColumn(closeButton, 2);
+        Grid.SetColumn(closeButton, 3);
 
         headerGrid.Children.Add(focusIndicator);
         headerGrid.Children.Add(titleText);
+        headerGrid.Children.Add(resetButton);
         headerGrid.Children.Add(closeButton);
         header.Child = headerGrid;
 
@@ -285,6 +325,7 @@ public class SplitPaneContainer : ContentControl
         var focusedAccent = GetThemeColor("AccentColor");
         return new Border
         {
+            Background = GetThemeBrush("TerminalHostBackgroundBrush"),
             Child = panel,
             BorderBrush = terminal.IsPaneFocused
                 ? new SolidColorBrush(Color.FromArgb(153, focusedAccent.R, focusedAccent.G, focusedAccent.B))
@@ -342,6 +383,7 @@ public class SplitPaneContainer : ContentControl
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
 
         var focusIndicator = new Border
         {
@@ -366,6 +408,22 @@ public class SplitPaneContainer : ContentControl
         };
         Grid.SetColumn(titleText, 1);
 
+        var resetBrowserButton = new Button
+        {
+            Content = "\uE149",
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            FontSize = 10,
+            Width = 18,
+            Height = 18,
+            Background = Brushes.Transparent,
+            Foreground = GetThemeBrush("ForegroundDimBrush"),
+            BorderThickness = new Thickness(0),
+            Cursor = Cursors.Hand,
+            ToolTip = L.T("Reset pane session"),
+        };
+        resetBrowserButton.Click += (_, _) => _surface.ResetPaneSession(paneId);
+        Grid.SetColumn(resetBrowserButton, 2);
+
         var closeButton = new Button
         {
             Content = "\u2715",
@@ -379,10 +437,11 @@ public class SplitPaneContainer : ContentControl
             ToolTip = L.T("Close pane"),
         };
         closeButton.Click += (_, _) => _surface.ClosePane(paneId);
-        Grid.SetColumn(closeButton, 2);
+        Grid.SetColumn(closeButton, 3);
 
         headerGrid.Children.Add(focusIndicator);
         headerGrid.Children.Add(titleText);
+        headerGrid.Children.Add(resetBrowserButton);
         headerGrid.Children.Add(closeButton);
         header.Child = headerGrid;
 
@@ -392,6 +451,7 @@ public class SplitPaneContainer : ContentControl
         var focusedAccent = GetThemeColor("AccentColor");
         return new Border
         {
+            Background = GetThemeBrush("TerminalHostBackgroundBrush"),
             Child = panel,
             BorderBrush = paneId == _surface.FocusedPaneId
                 ? new SolidColorBrush(Color.FromArgb(153, focusedAccent.R, focusedAccent.G, focusedAccent.B))
@@ -432,7 +492,7 @@ public class SplitPaneContainer : ContentControl
             {
                 Width = 4,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                Background = FindResource("DividerBrush") as Brush ?? Brushes.Gray,
+                Background = Application.Current?.TryFindResource("DividerBrush") as Brush ?? Brushes.Gray,
                 Cursor = System.Windows.Input.Cursors.SizeWE,
             };
             Grid.SetColumn(splitter, 1);
@@ -473,7 +533,7 @@ public class SplitPaneContainer : ContentControl
                 Height = 4,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
-                Background = FindResource("DividerBrush") as Brush ?? Brushes.Gray,
+                Background = Application.Current?.TryFindResource("DividerBrush") as Brush ?? Brushes.Gray,
                 Cursor = System.Windows.Input.Cursors.SizeNS,
             };
             Grid.SetRow(splitter, 1);
@@ -547,5 +607,17 @@ public class SplitPaneContainer : ContentControl
         terminal.Focus();
         Keyboard.Focus(terminal);
         return true;
+    }
+
+    /// <summary>
+    /// Rebuilds pane chrome so borders/headers created in code pick up new theme brushes
+    /// (resource dictionary may replace frozen brushes with new instances).
+    /// </summary>
+    public void RefreshChromeForTheme()
+    {
+        if (_surface == null)
+            return;
+
+        Dispatcher.BeginInvoke(new Action(Rebuild), DispatcherPriority.Background);
     }
 }

@@ -41,6 +41,9 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 
     public event Action<string>? WorkingDirectoryChanged;
 
+    /// <summary>Raised when a pane's terminal/browser UI should drop caches and rebuild (session reset).</summary>
+    public event Action<string>? PaneSessionReset;
+
     /// <summary>Timestamp of the last terminal output received (UTC ticks).</summary>
     public long LastOutputTicks { get; set; }
 
@@ -212,6 +215,52 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         return Surface.BrowserPaneUrls.Keys.FirstOrDefault();
     }
 
+    private static string GetDefaultBrowserUrl()
+    {
+        var u = SettingsService.Current.BrowserDefaultUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(u))
+            return "https://github.com/scokeepa/cmuxw/blob/master/docs/USER_GUIDE.md";
+        return u;
+    }
+
+    /// <summary>Resets only this pane: new terminal session or browser back to default URL; clears pane snapshot/history.</summary>
+    public void ResetPaneSession(string paneId)
+    {
+        if (string.IsNullOrWhiteSpace(paneId))
+            return;
+
+        if (IsBrowserPane(paneId))
+        {
+            Surface.PaneSnapshots.Remove(paneId);
+            Surface.BrowserPaneUrls[paneId] = GetDefaultBrowserUrl();
+            PaneSessionReset?.Invoke(paneId);
+            OnPropertyChanged(nameof(RootNode));
+            return;
+        }
+
+        string? cwd = null;
+        if (_sessions.TryGetValue(paneId, out var oldSession))
+        {
+            cwd = oldSession.WorkingDirectory;
+            CapturePaneTranscript(paneId, "pane-reset");
+            if (_daemonPanes.Remove(paneId))
+                _ = App.DaemonClient.CloseSessionAsync(paneId);
+            oldSession.Dispose();
+            _sessions.Remove(paneId);
+        }
+
+        _paneCommandHistory.Remove(paneId);
+        Surface.PaneSnapshots.Remove(paneId);
+        _lastPromptParseTicksByPane.Remove(paneId);
+
+        var shell = _paneShells.GetValueOrDefault(paneId);
+        PaneSessionReset?.Invoke(paneId);
+
+        var startCwd = cwd
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        StartSession(paneId, startCwd, null, shell);
+    }
+
     public void SetBrowserPaneUrl(string paneId, string url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -264,6 +313,9 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 
         if (string.Equals(reason, "clear-terminal", StringComparison.OrdinalIgnoreCase))
             return settings.CaptureTranscriptsOnClear;
+
+        if (string.Equals(reason, "pane-reset", StringComparison.OrdinalIgnoreCase))
+            return settings.CaptureTranscriptsOnClose;
 
         return settings.CaptureTranscriptsOnClose;
     }
@@ -745,20 +797,26 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         SplitFocused(SplitDirection.Horizontal);
     }
 
-    public void SplitFocused(SplitDirection direction, string? shell = null)
+    /// <param name="startTerminalInNewPane">When false, the new leaf is left without a terminal session (e.g. immediately converted to a browser pane — avoids spawning then killing pwsh).</param>
+    public void SplitFocused(SplitDirection direction, string? shell = null, bool startTerminalInNewPane = true)
     {
         if (FocusedPaneId == null) return;
 
         var node = RootNode.FindNode(FocusedPaneId);
         if (node == null || !node.IsLeaf) return;
 
+        var parentPaneId = FocusedPaneId;
         var newChild = node.Split(direction);
         if (newChild.PaneId != null)
         {
-            var currentSession = GetSession(FocusedPaneId);
-            var cwd = currentSession?.WorkingDirectory ?? _lastClosedPaneWorkingDirectory;
-            var effectiveShell = shell ?? _paneShells.GetValueOrDefault(FocusedPaneId);
-            StartSession(newChild.PaneId, cwd, null, effectiveShell);
+            if (startTerminalInNewPane)
+            {
+                var currentSession = GetSession(parentPaneId);
+                var cwd = currentSession?.WorkingDirectory ?? _lastClosedPaneWorkingDirectory;
+                var effectiveShell = shell ?? _paneShells.GetValueOrDefault(parentPaneId);
+                StartSession(newChild.PaneId, cwd, null, effectiveShell);
+            }
+
             FocusedPaneId = newChild.PaneId;
         }
 
@@ -776,7 +834,7 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         if (string.IsNullOrWhiteSpace(url) || FocusedPaneId == null)
             return false;
 
-        SplitFocused(SplitDirection.Vertical);
+        SplitFocused(SplitDirection.Vertical, null, startTerminalInNewPane: false);
         var browserPaneId = FocusedPaneId;
         if (string.IsNullOrWhiteSpace(browserPaneId))
             return false;
@@ -860,10 +918,117 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void ToggleZoom() => IsZoomed = !IsZoomed;
 
+    /// <summary>Whether the pane likely has user work (browser, daemon CLI, shell running, or command history).</summary>
+    public bool PaneHasNotableActivity(string paneId)
+    {
+        if (string.IsNullOrWhiteSpace(paneId))
+            return false;
+        if (IsBrowserPane(paneId))
+            return true;
+        if (_daemonPanes.Contains(paneId))
+            return true;
+        if (GetCommandHistory(paneId).Count > 0)
+            return true;
+        return _sessions.TryGetValue(paneId, out var s) && s.IsRunning;
+    }
+
+    /// <summary>
+    /// Panes that must close to reach a smaller Col×Row grid (dense layouts only).
+    /// Order is bottom-right first so <see cref="ClosePane"/> merges safely.
+    /// </summary>
+    public IReadOnlyList<string> GetOrderedPaneIdsToCloseForGridResize(int newCols, int newRows)
+    {
+        var layout = SplitNode.ComputePaneGridLayout(RootNode);
+        var n = RootNode.GetLeaves().Count();
+        if (n <= newCols * newRows || !SplitNode.IsDenseRectangularGrid(layout, n))
+            return Array.Empty<string>();
+
+        return layout.Cells
+            .Where(x => x.Col >= newCols || x.Row >= newRows)
+            .OrderByDescending(x => x.Row)
+            .ThenByDescending(x => x.Col)
+            .Select(x => x.PaneId)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Grows a dense rectangular grid toward <paramref name="targetCols"/>×<paramref name="targetRows"/>
+    /// using <see cref="SplitRight"/> / <see cref="SplitDown"/> only (sessions preserved).
+    /// </summary>
+    public void ExpandDenseGridTo(int targetCols, int targetRows)
+    {
+        for (var guard = 0; guard < 64; guard++)
+        {
+            var layout = SplitNode.ComputePaneGridLayout(RootNode);
+            var n = RootNode.GetLeaves().Count();
+            if (!SplitNode.IsDenseRectangularGrid(layout, n))
+                break;
+            if (layout.Cols >= targetCols && layout.Rows >= targetRows)
+                break;
+
+            if (layout.Cols < targetCols)
+            {
+                if (layout.Cells.Count == 0)
+                    break;
+
+                var topRight = layout.Cells
+                    .Where(x => x.Row == 0)
+                    .OrderByDescending(x => x.Col)
+                    .First();
+                FocusPane(topRight.PaneId);
+                SplitRight();
+                continue;
+            }
+
+            if (layout.Rows < targetRows)
+            {
+                for (var c = 0; c < layout.Cols; c++)
+                {
+                    layout = SplitNode.ComputePaneGridLayout(RootNode);
+                    n = RootNode.GetLeaves().Count();
+                    if (!SplitNode.IsDenseRectangularGrid(layout, n))
+                        goto doneExpand;
+
+                    var bottom = layout.Cells
+                        .Where(x => x.Col == c)
+                        .OrderByDescending(x => x.Row)
+                        .First();
+                    FocusPane(bottom.PaneId);
+                    SplitDown();
+                }
+
+                continue;
+            }
+
+            break;
+        }
+
+    doneExpand:
+        EqualizePanes();
+    }
+
     public void EqualizePanes()
     {
         RootNode.Equalize();
         OnPropertyChanged(nameof(RootNode));
+    }
+
+    /// <summary>
+    /// Replaces the split tree while preserving existing <see cref="TerminalSession"/> entries for all leaf pane ids.
+    /// Used to reshape irregular layouts into a toolbar grid without closing extra panes beyond an explicit shrink.
+    /// </summary>
+    public void ReplaceRootNode(SplitNode newRoot)
+    {
+        ArgumentNullException.ThrowIfNull(newRoot);
+
+        Surface.RootSplitNode = newRoot;
+        RootNode = newRoot;
+
+        if (string.IsNullOrWhiteSpace(FocusedPaneId) || newRoot.FindNode(FocusedPaneId) == null)
+            FocusedPaneId = newRoot.GetLeaves().FirstOrDefault()?.PaneId;
+
+        Surface.FocusedPaneId = FocusedPaneId;
     }
 
     partial void OnFocusedPaneIdChanged(string? value)

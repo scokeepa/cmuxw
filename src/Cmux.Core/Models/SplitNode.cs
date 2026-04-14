@@ -1,5 +1,8 @@
 namespace Cmux.Core.Models;
 
+/// <summary>Maps each terminal pane to a cell in an axis-aligned grid inferred from the split tree.</summary>
+public readonly record struct PaneGridLayout(int Cols, int Rows, IReadOnlyList<(string PaneId, int Col, int Row)> Cells);
+
 public enum SplitDirection
 {
     Horizontal,
@@ -295,5 +298,131 @@ public class SplitNode
         if (node1 == null || node2 == null || !node1.IsLeaf || !node2.IsLeaf) return false;
         (node1.PaneId, node2.PaneId) = (node2.PaneId, node1.PaneId);
         return true;
+    }
+
+    /// <summary>
+    /// Infers a dense Col×Row grid from the split tree (Vertical = left|right, Horizontal = top/bottom).
+    /// </summary>
+    public static PaneGridLayout ComputePaneGridLayout(SplitNode root)
+    {
+        static PaneGridLayout LeafLayout(string? paneId)
+        {
+            if (string.IsNullOrWhiteSpace(paneId))
+                return new PaneGridLayout(1, 1, Array.Empty<(string, int, int)>());
+            return new PaneGridLayout(1, 1, [(paneId!, 0, 0)]);
+        }
+
+        if (root.IsLeaf)
+            return LeafLayout(root.PaneId);
+
+        if (root.First == null || root.Second == null)
+            return new PaneGridLayout(1, 1, Array.Empty<(string, int, int)>());
+
+        var a = ComputePaneGridLayout(root.First);
+        var b = ComputePaneGridLayout(root.Second);
+
+        if (root.Direction == SplitDirection.Vertical)
+        {
+            var cells = new List<(string PaneId, int Col, int Row)>(a.Cells.Count + b.Cells.Count);
+            foreach (var t in a.Cells)
+                cells.Add(t);
+            foreach (var (id, c, r) in b.Cells)
+                cells.Add((id, c + a.Cols, r));
+            return new PaneGridLayout(a.Cols + b.Cols, Math.Max(a.Rows, b.Rows), cells);
+        }
+        else
+        {
+            var cells = new List<(string PaneId, int Col, int Row)>(a.Cells.Count + b.Cells.Count);
+            foreach (var t in a.Cells)
+                cells.Add(t);
+            foreach (var (id, c, r) in b.Cells)
+                cells.Add((id, c, r + a.Rows));
+            return new PaneGridLayout(Math.Max(a.Cols, b.Cols), a.Rows + b.Rows, cells);
+        }
+    }
+
+    /// <summary>True if every cell in the Cols×Rows bounding box is occupied by exactly one pane.</summary>
+    public static bool IsDenseRectangularGrid(PaneGridLayout layout, int leafCount)
+    {
+        if (layout.Cells.Count != leafCount || layout.Cols * layout.Rows != leafCount)
+            return false;
+
+        var occupied = new HashSet<(int Col, int Row)>();
+        foreach (var (id, c, r) in layout.Cells)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return false;
+            if (c < 0 || r < 0 || c >= layout.Cols || r >= layout.Rows) return false;
+            if (!occupied.Add((c, r))) return false;
+        }
+
+        for (var c = 0; c < layout.Cols; c++)
+        {
+            for (var r = 0; r < layout.Rows; r++)
+            {
+                if (!occupied.Contains((c, r)))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// True when the inferred grid is a full Col×Row rectangle and matches the toolbar preset dimensions.
+    /// </summary>
+    public static bool MatchesRequestedGrid(PaneGridLayout layout, int cols, int rows, int leafCount) =>
+        IsDenseRectangularGrid(layout, leafCount) && layout.Cols == cols && layout.Rows == rows;
+
+    /// <summary>
+    /// Builds a dense Col×Row split tree. <paramref name="paneIds"/> is row-major: (row0 col0..colN-1), (row1 col0..), …
+    /// Vertical splits = left|right; horizontal splits = top/bottom per <see cref="ComputePaneGridLayout"/>.
+    /// </summary>
+    public static SplitNode BuildDenseGridRowMajor(IReadOnlyList<string> paneIds, int cols, int rows)
+    {
+        if (cols <= 0 || rows <= 0)
+            throw new ArgumentOutOfRangeException(nameof(cols));
+        if (paneIds.Count != cols * rows)
+            throw new ArgumentException($"Expected {cols * rows} pane ids, got {paneIds.Count}.", nameof(paneIds));
+
+        static SplitNode BuildHorizontalChain(IReadOnlyList<string> slice)
+        {
+            if (slice.Count == 1)
+                return CreateLeaf(slice[0]);
+            var mid = slice.Count / 2;
+            return new SplitNode
+            {
+                IsLeaf = false,
+                Direction = SplitDirection.Vertical,
+                SplitRatio = mid / (double)slice.Count,
+                First = BuildHorizontalChain(slice.Take(mid).ToList()),
+                Second = BuildHorizontalChain(slice.Skip(mid).ToList()),
+            };
+        }
+
+        SplitNode StackRows(IReadOnlyList<SplitNode> rowNodes)
+        {
+            if (rowNodes.Count == 1)
+                return rowNodes[0];
+            var mid = rowNodes.Count / 2;
+            return new SplitNode
+            {
+                IsLeaf = false,
+                Direction = SplitDirection.Horizontal,
+                SplitRatio = mid / (double)rowNodes.Count,
+                First = StackRows(rowNodes.Take(mid).ToList()),
+                Second = StackRows(rowNodes.Skip(mid).ToList()),
+            };
+        }
+
+        var rowNodes = new List<SplitNode>(rows);
+        for (var r = 0; r < rows; r++)
+        {
+            var row = new List<string>(cols);
+            for (var c = 0; c < cols; c++)
+                row.Add(paneIds[r * cols + c]);
+            rowNodes.Add(BuildHorizontalChain(row));
+        }
+
+        return StackRows(rowNodes);
     }
 }

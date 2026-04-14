@@ -288,6 +288,63 @@ public sealed class AgentConversationStoreService
         try { StoreChanged?.Invoke(); } catch { }
     }
 
+    /// <summary>Clears stored messages for one thread (current visible conversation).</summary>
+    public void ClearMessagesForThread(string threadId)
+    {
+        lock (_lock)
+        {
+            if (string.IsNullOrWhiteSpace(threadId) || !_threads.TryGetValue(threadId, out var thread))
+                return;
+
+            var path = GetThreadMessagesPath(threadId);
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch
+            {
+                // Best effort
+            }
+
+            thread.MessageCount = 0;
+            thread.LastMessagePreview = "";
+            thread.TotalInputTokens = 0;
+            thread.TotalOutputTokens = 0;
+            thread.TotalTokens = 0;
+            thread.CompactionCount = 0;
+            thread.UpdatedAtUtc = DateTime.UtcNow;
+            PersistThreadsIndex();
+            NotifyChanged();
+        }
+    }
+
+    /// <summary>Deletes all agent threads and message files (full reset from settings).</summary>
+    public void ClearAllThreadsAndMessages()
+    {
+        lock (_lock)
+        {
+            EnsureStorage();
+            foreach (var id in _threads.Keys.ToList())
+            {
+                try
+                {
+                    var p = GetThreadMessagesPath(id);
+                    if (File.Exists(p))
+                        File.Delete(p);
+                }
+                catch
+                {
+                    // Best effort
+                }
+            }
+
+            _threads.Clear();
+            PersistThreadsIndex();
+            NotifyChanged();
+        }
+    }
+
     private static void ReadMessagesFromFile(string filePath, List<AgentConversationMessage> output)
     {
         var bytes = File.ReadAllBytes(filePath);

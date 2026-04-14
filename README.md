@@ -50,10 +50,15 @@ dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained false
 dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contained true -o publish/cmux-cli
 ```
 
+### Theme support
+- **Dark mode** (default): Cursor-style deep darks — chrome `#1E1E1E`, sidebar `#181818`, text `#CCCCCC`.
+- **Light mode**: chrome/sidebar `#F3F3F3`, terminal pane `#F8F8F8`, input fields `#FFFFFF`, text `#383A42`.
+- Toggle with the sun/moon button in the sidebar footer, or change in Settings > Appearance > Theme.
+
 ### Releases
 ```powershell
-.\release.ps1 -Tag v0.1.3 -AssetPath publish/cmuxw-win-x64.zip
-.\release.ps1 -Tag v0.1.3 -AssetPath publish/cmuxw-win-x64.zip -UpdateExisting
+.\release.ps1 -Tag v0.1.4 -AssetPath publish/cmuxw-win-x64.zip
+.\release.ps1 -Tag v0.1.4 -AssetPath publish/cmuxw-win-x64.zip -UpdateExisting
 ```
 
 Release notes history: [`CHANGELOG.md`](CHANGELOG.md)

@@ -57,17 +57,12 @@ internal static class WindowAppearance
     {
         window.SourceInitialized += (_, _) =>
         {
+            ApplyDarkFrameToWindow(window);
             try
             {
                 var hwnd = new WindowInteropHelper(window).Handle;
                 if (hwnd == IntPtr.Zero)
                     return;
-
-                var enabled = ShouldUseDarkFrame() ? 1 : 0;
-                _ = DwmSetWindowAttribute(hwnd, DwmUseImmersiveDarkMode, ref enabled, sizeof(int));
-
-                var borderColor = DwmColorNone;
-                _ = DwmSetWindowAttribute(hwnd, DwmWindowBorderColor, ref borderColor, sizeof(uint));
 
                 // Hook WM_GETMINMAXINFO to prevent maximized window from covering the taskbar
                 var source = HwndSource.FromHwnd(hwnd);
@@ -78,6 +73,38 @@ internal static class WindowAppearance
                 // Best effort: ignore on unsupported systems.
             }
         };
+    }
+
+    /// <summary>
+    /// Re-applies DWM immersive dark mode when the in-app theme changes (SourceInitialized runs only once).
+    /// </summary>
+    public static void RefreshDarkFrameForOpenWindows()
+    {
+        if (Application.Current == null)
+            return;
+
+        foreach (Window w in Application.Current.Windows)
+            ApplyDarkFrameToWindow(w);
+    }
+
+    private static void ApplyDarkFrameToWindow(Window window)
+    {
+        try
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero)
+                return;
+
+            var enabled = ShouldUseDarkFrame() ? 1 : 0;
+            _ = DwmSetWindowAttribute(hwnd, DwmUseImmersiveDarkMode, ref enabled, sizeof(int));
+
+            var borderColor = DwmColorNone;
+            _ = DwmSetWindowAttribute(hwnd, DwmWindowBorderColor, ref borderColor, sizeof(uint));
+        }
+        catch
+        {
+            // Best effort: ignore on unsupported systems.
+        }
     }
 
     private static nint MaximizeBoundsHook(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)

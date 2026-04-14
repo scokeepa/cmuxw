@@ -36,6 +36,9 @@ public partial class CommandPalette : UserControl
 
     public void Show(List<PaletteItem> items)
     {
+        if (Visibility != Visibility.Visible)
+            BrowserPaneRegistry.PushWebViewAirspaceSuppress();
+
         _allItems = items;
         SearchInput.Text = string.Empty;
         Filter(string.Empty);
@@ -45,7 +48,11 @@ public partial class CommandPalette : UserControl
 
     public void Hide()
     {
+        if (Visibility != Visibility.Visible)
+            return;
+
         Visibility = Visibility.Collapsed;
+        BrowserPaneRegistry.PopWebViewAirspaceSuppress();
         PaletteClosed?.Invoke();
     }
 

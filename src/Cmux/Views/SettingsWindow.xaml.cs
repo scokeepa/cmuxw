@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -437,6 +438,34 @@ public partial class SettingsWindow : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void ClearAllSessionDataButton_Click(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(
+            L.T("This permanently deletes session.json (window layout) and all agent conversation threads. The app will restart. Continue?"),
+            L.T("Clear all session data"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        SessionPersistenceService.DeletePersistedSession();
+        App.AgentConversationStore.ClearAllThreadsAndMessages();
+
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(exe))
+                Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true });
+        }
+        catch
+        {
+            // ignore
+        }
+
+        Application.Current.Shutdown();
     }
 
     private void SelectLanguageCombo(string? language)

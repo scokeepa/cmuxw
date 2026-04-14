@@ -51,6 +51,20 @@ public class SessionPersistenceService
         }
     }
 
+    /// <summary>Deletes persisted window/workspace layout (session.json) if present.</summary>
+    public static void DeletePersistedSession()
+    {
+        try
+        {
+            if (File.Exists(StatePath))
+                File.Delete(StatePath);
+        }
+        catch
+        {
+            // Best effort
+        }
+    }
+
     public static SessionState BuildState(
         IReadOnlyList<Workspace> workspaces,
         int? selectedWorkspaceIndex,

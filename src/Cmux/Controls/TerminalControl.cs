@@ -1396,22 +1396,25 @@ public class TerminalControl : FrameworkElement
             return;
         }
 
+        static SolidColorBrush ThemeBrush(string key) =>
+            Application.Current?.TryFindResource(key) as SolidColorBrush ?? Brushes.Transparent;
+
         var menu = new ContextMenu
         {
-            Background = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x20)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x3C)),
+            Background = ThemeBrush("SurfaceBrush"),
+            BorderBrush = ThemeBrush("BorderBrush"),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(4),
         };
 
         var menuItemStyle = new Style(typeof(MenuItem));
-        menuItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(0xE2, 0xE2, 0xE9))));
+        menuItemStyle.Setters.Add(new Setter(Control.ForegroundProperty, ThemeBrush("ForegroundBrush")));
         menuItemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
         menuItemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(8, 5, 8, 5)));
         menuItemStyle.Setters.Add(new Setter(Control.FontSizeProperty, 12.0));
 
         var separatorStyle = new Style(typeof(Separator));
-        separatorStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x3C))));
+        separatorStyle.Setters.Add(new Setter(Control.BackgroundProperty, ThemeBrush("BorderBrush")));
         separatorStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(4, 2, 4, 2)));
 
         menu.Resources.Add(typeof(MenuItem), menuItemStyle);
@@ -1481,7 +1484,7 @@ public class TerminalControl : FrameworkElement
         // Close Pane
         var closePane = new MenuItem { Header = L.T("Close Pane") };
         closePane.Icon = MakeIcon("\uE711");
-        closePane.Foreground = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+        closePane.Foreground = ThemeBrush("ErrorBrush");
         closePane.Click += (_, _) => ClosePaneRequested?.Invoke();
         menu.Items.Add(closePane);
 

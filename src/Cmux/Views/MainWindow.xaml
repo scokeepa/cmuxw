@@ -18,30 +18,16 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#FF141420" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#FFE2E2E9" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FF252547" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFE2E2E9" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#FF141420" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#FF141420" />
-
-        <SolidColorBrush x:Key="{x:Static SystemColors.MenuBarBrushKey}" Color="#FF141420" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.MenuHighlightBrushKey}" Color="#FF252547" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightBrushKey}" Color="#FF2A2A3C" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightLightBrushKey}" Color="#FF2A2A3C" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="#FF2A2A3C" />
-        <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkDarkBrushKey}" Color="#FF2A2A3C" />
-
         <Style x:Key="AppMenuStyle" TargetType="Menu">
-            <Setter Property="Background" Value="{StaticResource SidebarBackgroundBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SidebarBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="Padding" Value="4,2" />
         </Style>
 
         <Style x:Key="AppMenuTopItemStyle" TargetType="MenuItem">
-            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="8,3" />
             <Setter Property="Margin" Value="0,0,2,0" />
@@ -64,17 +50,19 @@
                                    Focusable="False"
                                    PopupAnimation="None"
                                    IsOpen="{TemplateBinding IsSubmenuOpen}">
-                                <Border Background="#FF141420" BorderBrush="#FF2A2A3C" BorderThickness="1" Padding="4" SnapsToDevicePixels="True">
-                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="4" SnapsToDevicePixels="True"
+                                        TextElement.Foreground="{DynamicResource ForegroundBrush}">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"
+                                                TextElement.Foreground="{DynamicResource ForegroundBrush}" />
                                 </Border>
                             </Popup>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="TopItemBg" Property="Background" Value="#FF1A1A2E" />
+                                <Setter TargetName="TopItemBg" Property="Background" Value="{DynamicResource SidebarItemHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsSubmenuOpen" Value="True">
-                                <Setter TargetName="TopItemBg" Property="Background" Value="#FF1A1A2E" />
+                                <Setter TargetName="TopItemBg" Property="Background" Value="{DynamicResource SidebarItemHoverBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -83,7 +71,7 @@
         </Style>
 
         <Style x:Key="AppMenuSubItemStyle" TargetType="MenuItem">
-            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="BorderThickness" Value="0" />
@@ -102,15 +90,15 @@
                                 </Grid.ColumnDefinitions>
                                 <ContentPresenter Grid.Column="0" ContentSource="Header" RecognizesAccessKey="True" />
                                 <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}" Margin="14,0,0,0"
-                                           Foreground="{StaticResource ForegroundDimBrush}" FontSize="11" />
+                                           Foreground="{DynamicResource ForegroundDimBrush}" FontSize="11" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="SubItemBg" Property="Background" Value="#FF252547" />
+                                <Setter TargetName="SubItemBg" Property="Background" Value="{DynamicResource SidebarItemSelectedBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{StaticResource ForegroundDimBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundDimBrush}" />
                                 <Setter TargetName="SubItemBg" Property="Opacity" Value="0.75" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -123,7 +111,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Separator">
-                        <Border Height="1" Margin="6,4" Background="#FF2A2A3C" />
+                        <Border Height="1" Margin="6,4" Background="{DynamicResource DividerBrush}" />
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -134,9 +122,9 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
-    <Border x:Name="WindowBorder" Background="{StaticResource BackgroundBrush}"
+    <Border x:Name="WindowBorder" Background="{DynamicResource BackgroundBrush}"
             CornerRadius="{StaticResource WindowCornerRadius}"
-            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Border.Clip>
             <RectangleGeometry x:Name="WindowClipGeometry" RadiusX="10" RadiusY="10" />
         </Border.Clip>
@@ -147,8 +135,8 @@
             </Grid.RowDefinitions>
 
             <!-- Custom title bar -->
-            <Border Grid.Row="0" Background="{StaticResource SidebarBackgroundBrush}"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                 <Grid Height="38">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" /> <!-- Menu items -->
@@ -160,7 +148,7 @@
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
                                 WindowChrome.IsHitTestVisibleInChrome="True">
                         <TextBlock Text="cmuxw" FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource AccentBrush}"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    VerticalAlignment="Center" Margin="14,0,12,0" />
                         <Menu Style="{StaticResource AppMenuStyle}" VerticalAlignment="Center">
                             <Menu.Resources>
@@ -230,7 +218,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Sidebar -->
-                <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}">
+                <Border x:Name="SidebarBorder" Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}">
 
                     <Grid>
                         <Grid.RowDefinitions>
@@ -240,7 +228,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- Sidebar top actions -->
-                        <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}"
+                        <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,0,0,1" Padding="8,8,8,6">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -253,8 +241,8 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Vertical">
-                                    <TextBlock Text="Workspaces" Foreground="{StaticResource ForegroundBrush}" FontSize="12" FontWeight="SemiBold" />
-                                    <TextBlock Text="Manage sessions and environments" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
+                                    <TextBlock Text="Workspaces" Foreground="{DynamicResource ForegroundBrush}" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="Manage sessions and environments" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -270,14 +258,18 @@
                                             Width="24" Height="24" Click="MenuOpenLogs_Click">
                                         <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
                                     </Button>
+                                    <Button Style="{StaticResource IconButton}" ToolTip="Reset sidebar view"
+                                            Width="24" Height="24" Click="SidebarResetSession_Click">
+                                        <TextBlock Text="&#xE149;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                                    </Button>
                                 </StackPanel>
 
                                 <TextBox x:Name="WorkspaceFilterBox"
                                          Grid.Row="1" Grid.ColumnSpan="2"
                                          Margin="0,8,0,0" Padding="8,5"
-                                         Background="#FF141420" Foreground="{StaticResource ForegroundBrush}"
-                                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                                         CaretBrush="{StaticResource ForegroundBrush}" SelectionBrush="{StaticResource AccentBrush}"
+                                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}"
+                                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                         CaretBrush="{DynamicResource ForegroundBrush}" SelectionBrush="{DynamicResource AccentBrush}"
                                          ToolTip="Filter workspaces by name, branch, or directory"
                                          TextChanged="WorkspaceFilterBox_TextChanged" />
                             </Grid>
@@ -324,11 +316,11 @@
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
                                                         <Setter TargetName="border" Property="Background"
-                                                                Value="{StaticResource SidebarItemHoverBrush}" />
+                                                                Value="{DynamicResource SidebarItemHoverBrush}" />
                                                     </Trigger>
                                                     <Trigger Property="IsSelected" Value="True">
                                                         <Setter TargetName="border" Property="Background"
-                                                                Value="{StaticResource SidebarItemSelectedBrush}" />
+                                                                Value="{DynamicResource SidebarItemSelectedBrush}" />
                                                         <Setter TargetName="activeBar" Property="Opacity" Value="1" />
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
@@ -343,7 +335,7 @@
                         </ListBox>
 
                         <!-- Sidebar footer -->
-                        <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}"
+                        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,1,0,0" Padding="6,6">
                             <StackPanel>
                                 <Button Command="{Binding CreateNewWorkspaceCommand}"
@@ -402,7 +394,7 @@
                 </Border>
 
                 <!-- Vertical divider -->
-                <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" Width="1" Background="{StaticResource BorderBrush}"
+                <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" Width="1" Background="{DynamicResource BorderBrush}"
                               HorizontalAlignment="Stretch" />
 
                 <!-- Content area -->
@@ -423,8 +415,8 @@
                         DataContext="{Binding SelectedWorkspace}" />
 
                     <!-- Toolbar -->
-                    <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}"
-                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                    <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
                             Padding="6,2">
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource IconButton}" ToolTip="Split Right (Ctrl+D)"
@@ -447,7 +439,7 @@
                                     Click="MenuOpenBrowser_Click">
                                 <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
                             </Button>
-                            <Rectangle Width="1" Height="16" Fill="{StaticResource BorderBrush}" Margin="4,0" />
+                            <Rectangle Width="1" Height="16" Fill="{DynamicResource BorderBrush}" Margin="4,0" />
                             <Button Style="{StaticResource IconButton}" ToolTip="Layout: 2 Columns"
                                     Click="ToolbarLayout2Col_Click">
                                 <TextBlock Text="&#xE8A1;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
@@ -460,7 +452,7 @@
                                     Click="ToolbarLayoutMainStack_Click">
                                 <TextBlock Text="&#xE89F;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
                             </Button>
-                            <Rectangle Width="1" Height="16" Fill="{StaticResource BorderBrush}" Margin="4,0" />
+                            <Rectangle Width="1" Height="16" Fill="{DynamicResource BorderBrush}" Margin="4,0" />
                             <Button Style="{StaticResource IconButton}" ToolTip="Equalize Panes"
                                     Click="ToolbarEqualize_Click">
                                 <TextBlock Text="&#xE9D5;" FontFamily="Segoe MDL2 Assets" FontSize="11" />
@@ -469,7 +461,7 @@
                                     Click="ToolbarZoom_Click">
                                 <TextBlock x:Name="ToolbarZoomIcon" Text="&#xE740;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
                             </Button>
-                            <Rectangle Width="1" Height="16" Fill="{StaticResource BorderBrush}" Margin="4,0" />
+                            <Rectangle Width="1" Height="16" Fill="{DynamicResource BorderBrush}" Margin="4,0" />
                             <Button x:Name="ToolbarAgentChatButton" Style="{StaticResource IconButton}" ToolTip="Toggle Agent Chat (Ctrl+Shift+A)"
                                     Click="ToggleAgentChat_Click">
                                 <TextBlock Text="&#xE11B;" FontFamily="Segoe MDL2 Assets" FontSize="12" />
@@ -478,7 +470,8 @@
                     </Border>
 
                     <!-- Terminal content -->
-                    <ContentControl Grid.Row="2" Grid.Column="0" x:Name="ContentArea">
+                    <ContentControl Grid.Row="2" Grid.Column="0" x:Name="ContentArea"
+                                    Background="{DynamicResource SurfaceBrush}">
                         <controls:SplitPaneContainer x:Name="SplitPaneContainerControl"
                             DataContext="{Binding SelectedWorkspace.SelectedSurface}" />
                     </ContentControl>
@@ -490,19 +483,21 @@
                         Visibility="{Binding NotificationPanelVisible, Converter={StaticResource BoolToVisibility}}"
                         DataContext="{Binding}" />
 
-                    <!-- Command palette overlay -->
+                    <!-- Command palette overlay (above WebView2 HWND — see BrowserPaneRegistry airspace suppress) -->
                     <controls:CommandPalette Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
                         x:Name="CommandPaletteControl"
+                        Panel.ZIndex="1000"
                         Visibility="Collapsed" />
 
                     <!-- Snippet picker overlay -->
                     <controls:SnippetPicker Grid.Row="0" Grid.RowSpan="3" Grid.Column="0"
                         x:Name="SnippetPickerControl"
+                        Panel.ZIndex="1001"
                         Visibility="Collapsed" />
 
                     <!-- Status bar -->
-                    <Border Grid.Row="3" Grid.Column="0" Background="{StaticResource SidebarBackgroundBrush}"
-                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                    <Border Grid.Row="3" Grid.Column="0" Background="{DynamicResource SidebarBackgroundBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                             Padding="10,3">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -512,26 +507,26 @@
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
                                 <!-- Git branch -->
                                 <TextBlock Text="&#xE8AD;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center"
                                            Margin="0,0,4,0" />
                                 <TextBlock Text="{Binding SelectedWorkspace.GitBranch, FallbackValue=''}" FontSize="11"
-                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"
                                            Margin="0,0,16,0" />
                                 <!-- Working directory -->
                                 <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center"
                                            Margin="0,0,4,0" />
                                 <TextBlock Text="{Binding SelectedWorkspace.WorkingDirectory, FallbackValue=''}" FontSize="11"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis" MaxWidth="300" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <!-- Pane count -->
                                 <TextBlock Text="&#xE737;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center"
                                            Margin="0,0,4,0" />
                                 <TextBlock x:Name="PaneCountText" Text="1 pane" FontSize="11"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center"
                                            Margin="0,0,12,0" />
                                 <!-- Daemon status -->
                                 <Border x:Name="DaemonStatusBorder" CornerRadius="3" Padding="5,1" Margin="0,0,12,0"
@@ -540,12 +535,12 @@
                                         <Ellipse x:Name="DaemonStatusDot" Width="6" Height="6"
                                                  Fill="#FF6B7280" Margin="0,0,4,0" VerticalAlignment="Center" />
                                         <TextBlock x:Name="DaemonStatusText" Text="Daemon" FontSize="10"
-                                                   Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" />
+                                                   Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Border>
                                 <!-- Shortcuts hint -->
                                 <TextBlock Text="Ctrl+Shift+P: Commands" FontSize="10"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center"
                                            Opacity="0.6" />
                             </StackPanel>
                         </Grid>
@@ -554,8 +549,8 @@
                     <!-- Agent chat panel -->
                     <Border x:Name="AgentChatPanel"
                             Grid.Row="0" Grid.RowSpan="4" Grid.Column="1"
-                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1,0,0,0"
-                            Background="{StaticResource SidebarBackgroundBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0"
+                            Background="{DynamicResource SidebarBackgroundBrush}"
                             Visibility="Collapsed">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -567,17 +562,22 @@
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
+                            <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Vertical">
-                                        <TextBlock Text="Agent Chat" Foreground="{StaticResource ForegroundBrush}" FontSize="13" FontWeight="SemiBold" />
-                                        <TextBlock Text="Persistent threads per pane" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
+                                        <TextBlock Text="Agent Chat" Foreground="{DynamicResource ForegroundBrush}" FontSize="13" FontWeight="SemiBold" />
+                                        <TextBlock Text="Persistent threads per pane" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
                                     </StackPanel>
-                                    <Button Grid.Column="1" Style="{StaticResource IconButton}" ToolTip="Hide Agent Chat"
+                                    <Button Grid.Column="1" Style="{StaticResource IconButton}" ToolTip="Clear visible agent thread"
+                                            Click="AgentResetVisibleThread_Click">
+                                        <TextBlock Text="&#xE149;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
+                                    </Button>
+                                    <Button Grid.Column="2" Style="{StaticResource IconButton}" ToolTip="Hide Agent Chat"
                                             Click="ToggleAgentChat_Click">
                                         <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="10" />
                                     </Button>
@@ -592,7 +592,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                           Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                           Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBox x:Name="AgentThreadSearchBox" Grid.Column="1" Style="{StaticResource CmuxTextBox}"
                                          Height="28" VerticalContentAlignment="Center"
                                          TextChanged="AgentThreadSearchBox_TextChanged"
@@ -610,28 +610,28 @@
                             <ListBox x:Name="AgentThreadsList"
                                      Grid.Row="2" Height="120" Margin="10,0,10,6"
                                      SelectionChanged="AgentThreadsList_SelectionChanged"
-                                     Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+                                     Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Margin="4,3">
-                                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource ForegroundBrush}" FontSize="11" />
-                                            <TextBlock Text="{Binding Meta}" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
+                                            <TextBlock Text="{Binding Title}" Foreground="{DynamicResource ForegroundBrush}" FontSize="11" />
+                                            <TextBlock Text="{Binding Meta}" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
 
                             <StackPanel Grid.Row="3" Margin="10,0,10,6">
-                                <TextBlock x:Name="AgentStatusText" Text="Idle" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
-                                <TextBlock x:Name="AgentUsageText" Text="Usage: -" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
-                                <TextBlock x:Name="AgentContextText" Text="Context: -" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
+                                <TextBlock x:Name="AgentStatusText" Text="Idle" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
+                                <TextBlock x:Name="AgentUsageText" Text="Usage: -" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
+                                <TextBlock x:Name="AgentContextText" Text="Context: -" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
                                 <Grid Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                               Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                               Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                     <TextBox x:Name="AgentMessageSearchBox" Grid.Column="1" Style="{StaticResource CmuxTextBox}" Height="28"
                                              VerticalContentAlignment="Center"
                                              ToolTip="Search within selected thread"
@@ -640,17 +640,18 @@
                             </StackPanel>
 
                             <ListBox x:Name="AgentMessagesList" Grid.Row="4" Margin="10,0,10,8"
-                                     Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                     Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                      HorizontalContentAlignment="Stretch"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Padding="8,6" Margin="4,3" CornerRadius="6" Background="#221A1A2E"
+                                        <Border Padding="8,6" Margin="4,3" CornerRadius="6"
+                                                Background="{DynamicResource AgentChatBubbleBrush}"
                                                 HorizontalAlignment="Stretch">
                                             <StackPanel>
-                                                <TextBlock Text="{Binding Header}" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
-                                                <TextBlock Text="{Binding Content}" Foreground="{StaticResource ForegroundBrush}" TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Meta}" Foreground="{StaticResource ForegroundDimBrush}" FontSize="10" />
+                                                <TextBlock Text="{Binding Header}" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
+                                                <TextBlock Text="{Binding Content}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Meta}" Foreground="{DynamicResource ForegroundDimBrush}" FontSize="10" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>

@@ -4,6 +4,7 @@ using Cmux.Core.Config;
 using Cmux.Core.IPC;
 using Cmux.Core.Services;
 using Cmux.Services;
+using Cmux.Views;
 using System.Windows.Controls;
 
 namespace Cmux;
@@ -113,6 +114,7 @@ public partial class App : Application
     private static void OnSettingsChanged()
     {
         ThemeManager.ApplyTheme(SettingsService.Current.ThemeName);
+        WindowAppearance.RefreshDarkFrameForOpenWindows();
         ReapplyLocalizationToOpenWindows();
     }
 }

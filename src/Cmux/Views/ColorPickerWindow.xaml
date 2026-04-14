@@ -12,9 +12,9 @@
                       ResizeBorderThickness="0" />
     </WindowChrome.WindowChrome>
 
-    <Border Background="{StaticResource BackgroundBrush}"
+    <Border Background="{DynamicResource BackgroundBrush}"
             CornerRadius="{StaticResource WindowCornerRadius}"
-            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Border.Effect>
             <DropShadowEffect BlurRadius="20" ShadowDepth="4" Color="#000000" Opacity="0.4" Direction="270" />
         </Border.Effect>
@@ -25,11 +25,11 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Border Grid.Row="0" Background="{StaticResource SidebarBackgroundBrush}"
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}"
                     CornerRadius="10,10,0,0"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                 <Grid>
-                    <TextBlock Text="Accent Color" Foreground="{StaticResource ForegroundDimBrush}"
+                    <TextBlock Text="Accent Color" Foreground="{DynamicResource ForegroundDimBrush}"
                                FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0" />
                     <Button Style="{StaticResource WindowCloseButton}" HorizontalAlignment="Right"
                             WindowChrome.IsHitTestVisibleInChrome="True"
@@ -52,10 +52,10 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="Workspace Accent Color"
-                           Foreground="{StaticResource ForegroundBrush}" FontWeight="SemiBold" FontSize="15" />
+                           Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" FontSize="15" />
 
                 <Border Grid.Row="1" Margin="0,12,0,10" Height="46" CornerRadius="6"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                         Background="{Binding ElementName=PreviewBrushHost, Path=Background}">
                     <Grid x:Name="PreviewBrushHost" Background="#FF818CF8">
                         <TextBlock Text="Preview" Foreground="White" FontWeight="SemiBold"
@@ -69,9 +69,9 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="52" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="R" Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="0" Text="R" Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" />
                     <Slider x:Name="RSlider" Grid.Column="1" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Slider_ValueChanged" />
-                    <TextBlock x:Name="RText" Grid.Column="2" Foreground="{StaticResource ForegroundBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock x:Name="RText" Grid.Column="2" Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </Grid>
 
                 <Grid Grid.Row="3" Margin="0,6,0,0">
@@ -80,9 +80,9 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="52" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="G" Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="0" Text="G" Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" />
                     <Slider x:Name="GSlider" Grid.Column="1" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Slider_ValueChanged" />
-                    <TextBlock x:Name="GText" Grid.Column="2" Foreground="{StaticResource ForegroundBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock x:Name="GText" Grid.Column="2" Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </Grid>
 
                 <Grid Grid.Row="4" Margin="0,6,0,0">
@@ -91,13 +91,13 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="52" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="B" Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="0" Text="B" Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" />
                     <Slider x:Name="BSlider" Grid.Column="1" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="Slider_ValueChanged" />
-                    <TextBlock x:Name="BText" Grid.Column="2" Foreground="{StaticResource ForegroundBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock x:Name="BText" Grid.Column="2" Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </Grid>
 
                 <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,12,0,0" VerticalAlignment="Top">
-                    <TextBlock Text="Hex" Foreground="{StaticResource ForegroundDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="Hex" Foreground="{DynamicResource ForegroundDimBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <TextBox x:Name="HexBox" Width="160" Style="{StaticResource CmuxTextBox}"
                              TextChanged="HexBox_TextChanged" />
                 </StackPanel>

@@ -23,8 +23,8 @@
 
         <Style x:Key="DarkListHeader" TargetType="GridViewColumnHeader">
             <Setter Property="Background" Value="#FF1A1A2E" />
-            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="0,0,1,1" />
             <Setter Property="Padding" Value="8,6" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -32,14 +32,14 @@
 
         <Style x:Key="DarkListItem" TargetType="ListViewItem">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#1FFFFFFF" />
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#FF252547" />
-                    <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -55,9 +55,9 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource BackgroundBrush}"
+    <Border Background="{DynamicResource BackgroundBrush}"
             CornerRadius="{StaticResource WindowCornerRadius}"
-            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="34" />
@@ -65,11 +65,11 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Border Grid.Row="0" Background="{StaticResource SidebarBackgroundBrush}"
+            <Border Grid.Row="0" Background="{DynamicResource SidebarBackgroundBrush}"
                     CornerRadius="10,10,0,0"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
                 <Grid>
-                    <TextBlock Text="Command History" Foreground="{StaticResource ForegroundDimBrush}"
+                    <TextBlock Text="Command History" Foreground="{DynamicResource ForegroundDimBrush}"
                                FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0" />
                     <Button Style="{StaticResource WindowCloseButton}" HorizontalAlignment="Right"
                             WindowChrome.IsHitTestVisibleInChrome="True"
@@ -88,7 +88,7 @@
                 </Grid.RowDefinitions>
 
                 <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                    <TextBlock Text="Search" Foreground="{StaticResource ForegroundDimBrush}"
+                    <TextBlock Text="Search" Foreground="{DynamicResource ForegroundDimBrush}"
                                VerticalAlignment="Center" Margin="0,0,8,0" />
                     <TextBox x:Name="SearchBox" Width="360" Style="{StaticResource CmuxTextBox}"
                              TextChanged="SearchBox_TextChanged"
@@ -96,15 +96,15 @@
                     <TextBlock Text="Enter = run, Shift+Enter = insert"
                                Margin="12,0,0,0"
                                VerticalAlignment="Center"
-                               Foreground="{StaticResource ForegroundDimBrush}"
+                               Foreground="{DynamicResource ForegroundDimBrush}"
                                FontSize="12" />
                     <TextBlock x:Name="SummaryText" Margin="16,0,0,0" VerticalAlignment="Center"
-                               Foreground="{StaticResource ForegroundDimBrush}" />
+                               Foreground="{DynamicResource ForegroundDimBrush}" />
                 </DockPanel>
 
                 <ListView Grid.Row="1" x:Name="EntriesList"
-                          Background="{StaticResource SurfaceBrush}" Foreground="{StaticResource ForegroundBrush}"
-                          BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                          Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource ForegroundBrush}"
+                          BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                           ItemContainerStyle="{StaticResource DarkListItem}"
                           MouseDoubleClick="EntriesList_MouseDoubleClick"
                           PreviewKeyDown="EntriesList_PreviewKeyDown">
