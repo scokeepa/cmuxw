@@ -113,6 +113,10 @@ try {
     $capturePass = $capture.Ok -and -not $capture.Timeout -and -not ($capture.Output.TrimStart().StartsWith("{"))
     Add-TestResult -Name "capture-pane" -Pass $capturePass -Output $capture.Output -Reason "default stdout should be plain text"
 
+    $readScreen = Invoke-Cmux -CmdArgs @("read-screen", "--workspace", "workspace:1", "--surface", "surface:1", "--lines", "20") -TimeoutSeconds $TimeoutSec
+    $readScreenPass = $readScreen.Ok -and -not $readScreen.Timeout -and -not ($readScreen.Output.TrimStart().StartsWith("{"))
+    Add-TestResult -Name "read-screen" -Pass $readScreenPass -Output $readScreen.Output -Reason "default stdout should be plain text"
+
     $setBuffer = Invoke-Cmux -CmdArgs @("set-buffer", "--name", "t1", "--", "hello") -TimeoutSeconds $TimeoutSec
     Add-TestResult -Name "set-buffer --name" -Pass ($setBuffer.Ok -and -not $setBuffer.Timeout -and $setBuffer.Output -match '"ok"\s*:\s*true') -Output $setBuffer.Output
 
@@ -136,6 +140,24 @@ try {
 
     $sendEscape = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "escape") -TimeoutSeconds $TimeoutSec
     Add-TestResult -Name "send-key escape" -Pass ($sendEscape.Ok -and -not $sendEscape.Timeout -and $sendEscape.Output -match '"ok"\s*:\s*true') -Output $sendEscape.Output
+
+    $sendTab = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "tab") -TimeoutSeconds $TimeoutSec
+    Add-TestResult -Name "send-key tab" -Pass ($sendTab.Ok -and -not $sendTab.Timeout -and $sendTab.Output -match '"ok"\s*:\s*true') -Output $sendTab.Output
+
+    $sendUp = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "up") -TimeoutSeconds $TimeoutSec
+    Add-TestResult -Name "send-key up" -Pass ($sendUp.Ok -and -not $sendUp.Timeout -and $sendUp.Output -match '"ok"\s*:\s*true') -Output $sendUp.Output
+
+    $sendDown = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "down") -TimeoutSeconds $TimeoutSec
+    Add-TestResult -Name "send-key down" -Pass ($sendDown.Ok -and -not $sendDown.Timeout -and $sendDown.Output -match '"ok"\s*:\s*true') -Output $sendDown.Output
+
+    $sendLeft = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "left") -TimeoutSeconds $TimeoutSec
+    Add-TestResult -Name "send-key left" -Pass ($sendLeft.Ok -and -not $sendLeft.Timeout -and $sendLeft.Output -match '"ok"\s*:\s*true') -Output $sendLeft.Output
+
+    $sendRight = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "right") -TimeoutSeconds $TimeoutSec
+    Add-TestResult -Name "send-key right" -Pass ($sendRight.Ok -and -not $sendRight.Timeout -and $sendRight.Output -match '"ok"\s*:\s*true') -Output $sendRight.Output
+
+    $sendSpace = Invoke-Cmux -CmdArgs @("send-key", "--workspace", "workspace:1", "--surface", "surface:1", "space") -TimeoutSeconds $TimeoutSec
+    Add-TestResult -Name "send-key space" -Pass ($sendSpace.Ok -and -not $sendSpace.Timeout -and $sendSpace.Output -match '"ok"\s*:\s*true') -Output $sendSpace.Output
 
     New-Item -ItemType Directory -Path "C:\temp" -Force | Out-Null
     $shotPath = "C:\temp\shot.png"

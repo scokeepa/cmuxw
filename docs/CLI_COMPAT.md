@@ -79,4 +79,10 @@ Validated in this repository (`dotnet run --project src/Cmux.Cli -- ...`):
 - `log --level info --source test "hello"` (`{"ok":true}` contract)
 - `send-key --workspace workspace:1 --surface surface:1 enter`
 - `send-key --workspace workspace:1 --surface surface:1 escape`
+- `send-key --workspace workspace:1 --surface surface:1 tab|up|down|left|right|space`
 - `browser screenshot --surface surface:1 --out C:\temp\shot.png` (file write confirmed)
+
+Automated smoke script:
+
+- `scripts/verify-cli-compat.ps1`
+- Usage (PowerShell): `.\scripts\verify-cli-compat.ps1`
