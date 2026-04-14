@@ -74,6 +74,11 @@ dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contain
 - Explorer node context menu is generated at right-click time for stable behavior.
 - Context menu labels are localized (Korean/Chinese/English) including `Delete`.
 
+### Dialog and close confirmation updates
+- Native Windows message boxes were replaced with themed in-app modals for visual consistency.
+- Close operations now require confirmation for pane close, side-tab close, pane session reset, and workspace close.
+- Closing the last pane in a workspace is treated as a workspace close intent and routes through workspace confirmation.
+
 ### Releases
 ```powershell
 .\release.ps1 -Tag v0.1.4 -AssetPath publish/cmuxw-win-x64.zip
@@ -137,6 +142,11 @@ cmux browser snapshot
 - 탐색기에서 터미널로 드래그 앤 드롭 시 경로를 바로 삽입할 수 있습니다.
 - 우클릭 시점에 컨텍스트 메뉴를 동적 생성해 메뉴 동작 안정성을 높였습니다.
 - 컨텍스트 메뉴 라벨(`Delete` 포함)은 다국어(한/중/영)로 반영됩니다.
+
+### 다이얼로그/닫기 확인 업데이트
+- Windows 기본 `MessageBox`를 앱 테마와 일관된 커스텀 모달로 교체했습니다.
+- 패널 닫기, 사이드탭 닫기, 패널 세션 초기화, 워크스페이스 닫기 시 확인 모달이 표시됩니다.
+- 워크스페이스의 마지막 패널을 닫는 동작은 워크스페이스 닫기 의도로 해석해 확인 후 닫습니다.
 
 ### 협업/문서
 - 기여 가이드: [`CONTRIBUTING.md`](CONTRIBUTING.md)
