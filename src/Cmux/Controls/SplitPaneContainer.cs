@@ -169,6 +169,10 @@ public class SplitPaneContainer : ContentControl
         {
             terminal = new TerminalControl();
             _terminalCache[paneId] = terminal;
+
+            var settings = SettingsService.Current;
+            var effectiveTheme = TerminalThemes.GetEffective(settings);
+            terminal.UpdateSettings(effectiveTheme, settings.FontFamily, settings.FontSize);
         }
         else
         {
