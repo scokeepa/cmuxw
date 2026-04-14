@@ -65,7 +65,7 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
         // Create surface VMs for existing surfaces
         foreach (var surface in workspace.Surfaces)
         {
-            var surfaceVm = new SurfaceViewModel(surface, workspace.Id, notificationService);
+            var surfaceVm = new SurfaceViewModel(surface, workspace.Id, notificationService, workspace.WorkingDirectory);
             surfaceVm.WorkingDirectoryChanged += OnSurfaceWorkingDirectoryChanged;
             Surfaces.Add(surfaceVm);
         }
@@ -89,7 +89,7 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
         var surface = new Surface { Name = $"Terminal {Surfaces.Count + 1}" };
         Workspace.Surfaces.Add(surface);
 
-        var surfaceVm = new SurfaceViewModel(surface, Workspace.Id, _notificationService);
+        var surfaceVm = new SurfaceViewModel(surface, Workspace.Id, _notificationService, WorkingDirectory ?? Workspace.WorkingDirectory);
         surfaceVm.WorkingDirectoryChanged += OnSurfaceWorkingDirectoryChanged;
         Surfaces.Add(surfaceVm);
         SelectedSurface = surfaceVm;
@@ -108,7 +108,7 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
 
         Workspace.Surfaces.Add(surface);
 
-        var surfaceVm = new SurfaceViewModel(surface, Workspace.Id, _notificationService);
+        var surfaceVm = new SurfaceViewModel(surface, Workspace.Id, _notificationService, WorkingDirectory ?? Workspace.WorkingDirectory);
         surfaceVm.WorkingDirectoryChanged += OnSurfaceWorkingDirectoryChanged;
         Surfaces.Add(surfaceVm);
         SelectedSurface = surfaceVm;

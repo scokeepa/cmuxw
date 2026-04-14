@@ -17,6 +17,7 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 {
     public Surface Surface { get; }
     private readonly string _workspaceId;
+    private readonly string? _workspaceCwd;
     private readonly NotificationService _notificationService;
     private readonly Dictionary<string, TerminalSession> _sessions = [];
     private readonly Dictionary<string, List<string>> _paneCommandHistory = [];
@@ -73,10 +74,11 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     public bool IsBrowserSurface => Surface.BrowserPaneUrls.Count > 0;
     private string? _lastClosedPaneWorkingDirectory;
 
-    public SurfaceViewModel(Surface surface, string workspaceId, NotificationService notificationService)
+    public SurfaceViewModel(Surface surface, string workspaceId, NotificationService notificationService, string? workspaceCwd = null)
     {
         Surface = surface;
         _workspaceId = workspaceId;
+        _workspaceCwd = workspaceCwd;
         _notificationService = notificationService;
         _name = surface.Name;
         _rootNode = surface.RootSplitNode;
@@ -627,7 +629,10 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         _sessions[paneId] = session;
         _daemonPanes.Add(paneId);
 
-        var effectiveCwd = workingDirectory ?? restoredState?.WorkingDirectory;
+        var effectiveCwd = workingDirectory
+            ?? restoredState?.WorkingDirectory
+            ?? _lastClosedPaneWorkingDirectory
+            ?? _workspaceCwd;
 
         // Create/attach session on daemon asynchronously
         _ = Task.Run(async () =>
@@ -715,7 +720,10 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         WireSessionEvents(session, paneId);
 
         _sessions[paneId] = session;
-        session.Start(command: shell, workingDirectory: workingDirectory ?? restoredState?.WorkingDirectory);
+        session.Start(command: shell, workingDirectory: workingDirectory
+            ?? restoredState?.WorkingDirectory
+            ?? _lastClosedPaneWorkingDirectory
+            ?? _workspaceCwd);
 
         if (restoredState?.BufferSnapshot != null)
             session.RestoreBufferSnapshot(restoredState.BufferSnapshot);
