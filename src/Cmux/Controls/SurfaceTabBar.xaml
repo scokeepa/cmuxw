@@ -27,7 +27,7 @@
                             <SolidColorBrush x:Name="tabBg" Color="Transparent" />
                         </Border.Background>
                         <Border.ContextMenu>
-                            <ContextMenu Tag="{Binding}">
+                            <ContextMenu Tag="{Binding}" Opened="SurfaceTab_ContextMenu_Opened">
                                 <MenuItem Header="Rename" Click="RenameTab_Click" />
                                 <MenuItem Header="Duplicate" Click="DuplicateTab_Click" />
                                 <Separator />

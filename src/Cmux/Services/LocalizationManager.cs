@@ -44,6 +44,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Toggle Sidebar"] = "사이드바 토글",
             ["Notifications"] = "알림",
             ["Toggle Theme"] = "테마 전환",
+            ["Toggle Explorer"] = "탐색기 토글",
             ["Switch to Dark"] = "다크로 전환",
             ["Switch to Light"] = "라이트로 전환",
             ["Test Notification"] = "테스트 알림",
@@ -323,6 +324,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["Enter a single icon (emoji/symbol) or a glyph code like E8A5, U+E8A5, 0xE8A5."] = "단일 아이콘(이모지/기호) 또는 E8A5, U+E8A5, 0xE8A5 형식의 글리프 코드를 입력하세요."
             ,["SVG is not supported in workspace icon yet. Use emoji/symbol or MDL2 hex code."] = "워크스페이스 아이콘에서 SVG는 아직 지원되지 않습니다. 이모지/기호 또는 MDL2 16진 코드를 사용하세요."
             ,["Rename"] = "이름 변경"
+            ,["Delete"] = "삭제"
             ,["Duplicate"] = "복제"
             ,["Set Workspace Icon"] = "워크스페이스 아이콘 설정"
             ,["Accent: Indigo"] = "강조: 인디고"
@@ -336,6 +338,35 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ,["Accent: Custom..."] = "강조: 사용자 지정..."
             ,["Move Up"] = "위로 이동"
             ,["Move Down"] = "아래로 이동"
+            ,["Close Others"] = "다른 탭 닫기"
+            ,["Filter explorer"] = "탐색기 필터"
+            ,["Add root"] = "루트 추가"
+            ,["Refresh explorer"] = "탐색기 새로고침"
+            ,["Explorer"] = "탐색기"
+            ,["Enter an absolute directory path for the new root."] = "새 루트의 절대 디렉터리 경로를 입력하세요."
+            ,["Directory does not exist."] = "디렉터리가 존재하지 않습니다."
+            ,["Root already exists."] = "이미 추가된 루트입니다."
+            ,["New File"] = "새 파일"
+            ,["Enter file name"] = "파일 이름을 입력하세요."
+            ,["New Folder"] = "새 폴더"
+            ,["Enter folder name"] = "폴더 이름을 입력하세요."
+            ,["Delete '{0}'?"] = "'{0}'을(를) 삭제할까요?"
+            ,["Open in Terminal"] = "터미널에서 열기"
+            ,["Reveal in Explorer"] = "탐색기에서 위치 보기"
+            ,["Remove Root"] = "루트 제거"
+            ,["Invalid file name."] = "유효하지 않은 파일 이름입니다."
+            ,["Invalid folder name."] = "유효하지 않은 폴더 이름입니다."
+            ,["Invalid name."] = "유효하지 않은 이름입니다."
+            ,["Target directory is not valid."] = "대상 디렉터리가 유효하지 않습니다."
+            ,["Target path is outside allowed roots."] = "대상 경로가 허용된 루트 범위를 벗어났습니다."
+            ,["A file or folder with the same name already exists."] = "같은 이름의 파일 또는 폴더가 이미 존재합니다."
+            ,["Cannot rename this path."] = "이 경로의 이름은 변경할 수 없습니다."
+            ,["Source path is not valid."] = "원본 경로가 유효하지 않습니다."
+            ,["Source path does not exist."] = "원본 경로가 존재하지 않습니다."
+            ,["Path is not valid."] = "경로가 유효하지 않습니다."
+            ,["Source or target path is outside allowed roots."] = "원본 또는 대상 경로가 허용된 루트 범위를 벗어났습니다."
+            ,["Target directory does not exist."] = "대상 디렉터리가 존재하지 않습니다."
+            ,["Path does not exist."] = "경로가 존재하지 않습니다."
             ,["Usage: in {0} · out {1} · total {2}"] = "사용량: 입력 {0} · 출력 {1} · 합계 {2}"
             ,["Context: {0}/{1} tokens{2}"] = "컨텍스트: {0}/{1} 토큰{2}"
             ,["Context: {0}/{1} tokens{2}{3}"] = "컨텍스트: {0}/{1} 토큰{2}{3}"
@@ -426,6 +457,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Toggle Sidebar"] = "切换侧边栏",
             ["Notifications"] = "通知",
             ["Toggle Theme"] = "切换主题",
+            ["Toggle Explorer"] = "切换资源管理器",
             ["Switch to Dark"] = "切换到深色",
             ["Switch to Light"] = "切换到浅色",
             ["Test Notification"] = "测试通知",
@@ -705,6 +737,7 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Enter a single icon (emoji/symbol) or a glyph code like E8A5, U+E8A5, 0xE8A5."] = "输入单个图标（表情/符号）或如 E8A5、U+E8A5、0xE8A5 的字形代码。",
             ["SVG is not supported in workspace icon yet. Use emoji/symbol or MDL2 hex code."] = "工作区图标暂不支持 SVG。请使用表情/符号或 MDL2 十六进制代码。",
             ["Rename"] = "重命名",
+            ["Delete"] = "删除",
             ["Duplicate"] = "复制",
             ["Set Workspace Icon"] = "设置工作区图标",
             ["Accent: Indigo"] = "强调色：靛蓝",
@@ -718,6 +751,35 @@ public sealed class LocalizationManager : INotifyPropertyChanged
             ["Accent: Custom..."] = "强调色：自定义...",
             ["Move Up"] = "上移",
             ["Move Down"] = "下移",
+            ["Close Others"] = "关闭其他",
+            ["Filter explorer"] = "筛选资源管理器",
+            ["Add root"] = "添加根目录",
+            ["Refresh explorer"] = "刷新资源管理器",
+            ["Explorer"] = "资源管理器",
+            ["Enter an absolute directory path for the new root."] = "请输入新根目录的绝对路径。",
+            ["Directory does not exist."] = "目录不存在。",
+            ["Root already exists."] = "该根目录已存在。",
+            ["New File"] = "新建文件",
+            ["Enter file name"] = "请输入文件名。",
+            ["New Folder"] = "新建文件夹",
+            ["Enter folder name"] = "请输入文件夹名称。",
+            ["Delete '{0}'?"] = "确定删除“{0}”吗？",
+            ["Open in Terminal"] = "在终端中打开",
+            ["Reveal in Explorer"] = "在资源管理器中定位",
+            ["Remove Root"] = "移除根目录",
+            ["Invalid file name."] = "文件名无效。",
+            ["Invalid folder name."] = "文件夹名称无效。",
+            ["Invalid name."] = "名称无效。",
+            ["Target directory is not valid."] = "目标目录无效。",
+            ["Target path is outside allowed roots."] = "目标路径超出允许的根目录范围。",
+            ["A file or folder with the same name already exists."] = "已存在同名文件或文件夹。",
+            ["Cannot rename this path."] = "无法重命名此路径。",
+            ["Source path is not valid."] = "源路径无效。",
+            ["Source path does not exist."] = "源路径不存在。",
+            ["Path is not valid."] = "路径无效。",
+            ["Source or target path is outside allowed roots."] = "源路径或目标路径超出允许的根目录范围。",
+            ["Target directory does not exist."] = "目标目录不存在。",
+            ["Path does not exist."] = "路径不存在。",
             ["Usage: in {0} · out {1} · total {2}"] = "用量：输入 {0} · 输出 {1} · 总计 {2}",
             ["Context: {0}/{1} tokens{2}"] = "上下文：{0}/{1} tokens{2}",
             ["Context: {0}/{1} tokens{2}{3}"] = "上下文：{0}/{1} tokens{2}{3}",
@@ -804,6 +866,25 @@ public sealed class LocalizationManager : INotifyPropertyChanged
         _language = normalized;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
         LanguageChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Applies <see cref="Translate"/> to every <see cref="MenuItem.Header"/> that is a non-empty string.
+    /// Context menus are often outside the main visual tree at load, so window-wide localization misses them.
+    /// </summary>
+    public static void LocalizeContextMenuHeaders(ItemCollection items)
+    {
+        foreach (var o in items)
+        {
+            if (o is not MenuItem mi)
+                continue;
+
+            if (mi.Header is string h && !string.IsNullOrWhiteSpace(h))
+                mi.Header = Instance.Translate(h);
+
+            if (mi.Items.Count > 0)
+                LocalizeContextMenuHeaders(mi.Items);
+        }
     }
 
     public string this[string key] => Translate(key);

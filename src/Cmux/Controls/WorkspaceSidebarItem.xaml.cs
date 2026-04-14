@@ -13,6 +13,38 @@ public partial class WorkspaceSidebarItem : UserControl
     public WorkspaceSidebarItem()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (Content is not Grid grid || grid.ContextMenu == null)
+            return;
+
+        grid.ContextMenu.Opened += OnWorkspaceContextMenuOpened;
+        LocalizationManager.Instance.LanguageChanged += OnLanguageChanged;
+        LocalizationManager.LocalizeContextMenuHeaders(grid.ContextMenu.Items);
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (Content is Grid grid && grid.ContextMenu != null)
+            grid.ContextMenu.Opened -= OnWorkspaceContextMenuOpened;
+
+        LocalizationManager.Instance.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnWorkspaceContextMenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu cm)
+            LocalizationManager.LocalizeContextMenuHeaders(cm.Items);
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (Content is Grid grid && grid.ContextMenu != null)
+            LocalizationManager.LocalizeContextMenuHeaders(grid.ContextMenu.Items);
     }
 
     private WorkspaceViewModel? Vm => DataContext as WorkspaceViewModel;

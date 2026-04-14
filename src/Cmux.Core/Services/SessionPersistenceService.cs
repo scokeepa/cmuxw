@@ -69,7 +69,8 @@ public class SessionPersistenceService
         IReadOnlyList<Workspace> workspaces,
         int? selectedWorkspaceIndex,
         double windowX, double windowY, double windowWidth, double windowHeight,
-        bool isMaximized, double sidebarWidth, bool sidebarVisible, bool compactSidebar)
+        bool isMaximized, double sidebarWidth, bool sidebarVisible, bool compactSidebar,
+        double agentPanelWidth, bool agentPanelVisible, bool notificationPanelVisible)
     {
         var state = new SessionState
         {
@@ -85,6 +86,9 @@ public class SessionPersistenceService
                 SidebarWidth = sidebarWidth,
                 SidebarVisible = sidebarVisible,
                 CompactSidebar = compactSidebar,
+                AgentPanelWidth = agentPanelWidth,
+                AgentPanelVisible = agentPanelVisible,
+                NotificationPanelVisible = notificationPanelVisible,
             },
         };
 
@@ -98,6 +102,19 @@ public class SessionPersistenceService
                 AccentColor = ws.AccentColor,
                 WorkingDirectory = ws.WorkingDirectory,
                 SelectedSurfaceIndex = ws.Surfaces.IndexOf(ws.SelectedSurface!),
+                ExplorerState = new WorkspaceExplorerState
+                {
+                    SelectedPath = ws.ExplorerState.SelectedPath,
+                    ExpandedPaths = ws.ExplorerState.ExpandedPaths.ToList(),
+                    Roots = ws.ExplorerState.Roots
+                        .Select(r => new ExplorerRootConfig
+                        {
+                            Id = r.Id,
+                            Path = r.Path,
+                            DisplayName = r.DisplayName,
+                        })
+                        .ToList(),
+                },
             };
 
             foreach (var surface in ws.Surfaces)

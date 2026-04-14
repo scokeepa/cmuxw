@@ -29,6 +29,9 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<AgentChatMessageView> _visibleThreadMessages = [];
     private string? _selectedAgentThreadId;
     private string _lastAgentContextKey = "";
+    private bool _suppressSidebarFilterSync;
+    private string _workspaceFilterDraft = "";
+    private string _explorerFilterDraft = "";
 
     public MainWindow()
     {
@@ -39,6 +42,7 @@ public partial class MainWindow : Window
         CommandPaletteControl.PaletteClosed += () => FocusTerminal();
         CommandPaletteControl.ItemExecuted += item => FocusTerminal();
         NotificationPanelControl.NotificationClicked += n => ViewModel.NavigateToNotification(n);
+        ExplorerSidebarControl.OpenPathInTerminalRequested += ExplorerSidebar_OpenPathInTerminalRequested;
 
 
         // Wire snippet picker events
@@ -206,13 +210,35 @@ public partial class MainWindow : Window
 
     private void WorkspaceFilterBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
+        if (_suppressSidebarFilterSync)
+            return;
+
+        if (SidebarTabControl.SelectedItem != WorkspacesTab)
+        {
+            _explorerFilterDraft = WorkspaceFilterBox.Text;
+            ExplorerSidebarControl.SetFilterText(_explorerFilterDraft);
+            return;
+        }
+
+        _workspaceFilterDraft = WorkspaceFilterBox.Text;
         _workspaceView?.Refresh();
     }
 
     private void SidebarResetSession_Click(object sender, RoutedEventArgs e)
     {
-        WorkspaceFilterBox.Text = "";
-        _workspaceView?.Refresh();
+        if (SidebarTabControl.SelectedItem == ExplorerTab)
+        {
+            _explorerFilterDraft = "";
+            SetSidebarFilterText(_explorerFilterDraft);
+            ExplorerSidebarControl.ResetView();
+        }
+        else
+        {
+            _workspaceFilterDraft = "";
+            SetSidebarFilterText(_workspaceFilterDraft);
+            _workspaceView?.Refresh();
+        }
+
         var wsId = ViewModel.SelectedWorkspace?.Workspace.Id;
         if (!string.IsNullOrWhiteSpace(wsId))
             App.NotificationService.MarkWorkspaceAsRead(wsId);
@@ -249,6 +275,9 @@ public partial class MainWindow : Window
         }
 
         RefreshSurfaceUiState();
+        ApplySidebarChromeStrings();
+        LocalizationManager.Instance.LanguageChanged += OnLocalizationLanguageChanged;
+        UpdateSidebarTabMode();
         UpdateSidebarLayout();
         UpdateDaemonStatus();
         UpdateWindowChrome();
@@ -259,6 +288,20 @@ public partial class MainWindow : Window
         // Monitor daemon connection changes
         App.DaemonClient.Connected += () => Dispatcher.BeginInvoke(UpdateDaemonStatus);
         App.DaemonClient.Disconnected += () => Dispatcher.BeginInvoke(UpdateDaemonStatus);
+
+        Application.Current.SessionEnding += OnSessionEnding;
+    }
+
+    private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)
+    {
+        try
+        {
+            PersistSessionToDisk();
+        }
+        catch
+        {
+            // best effort during logoff/shutdown
+        }
     }
 
     private void UpdateDaemonStatus()
@@ -295,11 +338,31 @@ public partial class MainWindow : Window
 
     private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {
+        LocalizationManager.Instance.LanguageChanged -= OnLocalizationLanguageChanged;
+        Application.Current.SessionEnding -= OnSessionEnding;
         _uiRefreshTimer.Stop();
         ViewModel.PropertyChanged -= ViewModel_PropertyChanged;
         App.AgentRuntime.RuntimeUpdated -= OnAgentRuntimeUpdated;
         App.AgentConversationStore.StoreChanged -= OnAgentConversationStoreChanged;
-        ViewModel.SaveSession(Left, Top, Width, Height, WindowState == WindowState.Maximized);
+        PersistSessionToDisk();
+    }
+
+    /// <summary>
+    /// Persists workspaces, surfaces, pane layout, cwd snapshots, and chrome (sidebar, agent panel).
+    /// Uses <see cref="Window.RestoreBounds"/> when maximized so the next launch restores the pre-maximize size/position.
+    /// </summary>
+    private void PersistSessionToDisk()
+    {
+        bool maximized = WindowState == WindowState.Maximized;
+        if (maximized && RestoreBounds.Width > 0 && RestoreBounds.Height > 0)
+        {
+            var r = RestoreBounds;
+            ViewModel.SaveSession(r.Left, r.Top, r.Width, r.Height, true);
+        }
+        else
+        {
+            ViewModel.SaveSession(Left, Top, Width, Height, maximized);
+        }
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -512,6 +575,10 @@ public partial class MainWindow : Window
                     return;
                 case Key.A: // Toggle agent chat
                     ToggleAgentChat();
+                    e.Handled = true;
+                    return;
+                case Key.E: // Toggle explorer tab (Ctrl+Shift+E)
+                    ToggleExplorerTab();
                     e.Handled = true;
                     return;
                 case Key.B: // Open browser
@@ -904,6 +971,85 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SidebarTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // SelectionChanged can fire during InitializeComponent before all named controls are ready.
+        // Defer layout sync until the window is fully loaded.
+        if (!IsLoaded)
+            return;
+
+        UpdateSidebarTabMode();
+    }
+
+    private void SidebarExplorerAddRoot_Click(object sender, RoutedEventArgs e)
+    {
+        if (ExplorerSidebarControl.TryPickAndAddRoot())
+            ExplorerSidebarControl.ResetView();
+    }
+
+    private async void SidebarExplorerRefresh_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.SelectedWorkspace?.Explorer != null)
+            await ViewModel.SelectedWorkspace.Explorer.RefreshNodeAsync(ViewModel.SelectedWorkspace.Explorer.SelectedItem);
+    }
+
+    private void SidebarExplorerToggle_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleExplorerTab();
+    }
+
+    private void ToggleExplorerTab()
+    {
+        if (SidebarTabControl.SelectedItem == ExplorerTab)
+            SidebarTabControl.SelectedItem = WorkspacesTab;
+        else
+            SidebarTabControl.SelectedItem = ExplorerTab;
+    }
+
+    private void UpdateSidebarTabMode()
+    {
+        if (SidebarTabControl == null
+            || WorkspaceFilterBox == null
+            || ExplorerSidebarControl == null
+            || SidebarExplorerAddRootButton == null
+            || SidebarExplorerRefreshButton == null
+            || SidebarSectionTitle == null
+            || SidebarSectionSubtitle == null)
+            return;
+
+        var isWorkspaceTab = SidebarTabControl.SelectedItem == WorkspacesTab;
+        ExplorerSidebarControl.SetToolbarVisible(false);
+        SidebarExplorerAddRootButton.Visibility = isWorkspaceTab ? Visibility.Collapsed : Visibility.Visible;
+        SidebarExplorerRefreshButton.Visibility = isWorkspaceTab ? Visibility.Collapsed : Visibility.Visible;
+
+        _suppressSidebarFilterSync = true;
+        WorkspaceFilterBox.ToolTip = isWorkspaceTab
+            ? L.T("Filter workspaces by name, branch, or directory")
+            : L.T("Filter explorer");
+        WorkspaceFilterBox.Text = isWorkspaceTab ? _workspaceFilterDraft : _explorerFilterDraft;
+        _suppressSidebarFilterSync = false;
+
+        if (isWorkspaceTab)
+        {
+            SidebarSectionTitle.Text = "Workspaces";
+            SidebarSectionSubtitle.Text = "Manage sessions and environments";
+            _workspaceView?.Refresh();
+        }
+        else
+        {
+            SidebarSectionTitle.Text = L.T("Explorer");
+            SidebarSectionSubtitle.Text = "Browse project files and folders";
+            ExplorerSidebarControl.SetFilterText(_explorerFilterDraft);
+        }
+    }
+
+    private void SetSidebarFilterText(string text)
+    {
+        _suppressSidebarFilterSync = true;
+        WorkspaceFilterBox.Text = text;
+        _suppressSidebarFilterSync = false;
+    }
+
     private void UpdateAgentPanelLayout()
     {
         if (ViewModel.AgentPanelVisible)
@@ -911,14 +1057,51 @@ public partial class MainWindow : Window
             var width = Math.Clamp(ViewModel.AgentPanelWidth, 300, 620);
             AgentChatColumn.Width = new GridLength(width);
             AgentChatPanel.Visibility = Visibility.Visible;
-            ToolbarAgentChatButton.Foreground = (System.Windows.Media.Brush)FindResource("AccentBrush");
+            ToolbarAgentChatBadge.Background = (Brush)FindResource("AccentBrush");
+            ToolbarAgentChatBadge.BorderThickness = new Thickness(0);
+            ToolbarAgentChatBadge.ClearValue(Border.BorderBrushProperty);
+            ToolbarAgentAiLabel.Foreground = Brushes.White;
         }
         else
         {
             AgentChatColumn.Width = new GridLength(0);
             AgentChatPanel.Visibility = Visibility.Collapsed;
-            ToolbarAgentChatButton.Foreground = (System.Windows.Media.Brush)FindResource("ForegroundDimBrush");
+            ToolbarAgentChatBadge.Background = (Brush)FindResource("SurfaceBrush");
+            ToolbarAgentChatBadge.BorderBrush = (Brush)FindResource("BorderBrush");
+            ToolbarAgentChatBadge.BorderThickness = new Thickness(1);
+            ToolbarAgentAiLabel.Foreground = (Brush)FindResource("ForegroundBrush");
         }
+    }
+
+    private void OnLocalizationLanguageChanged()
+    {
+        Dispatcher.BeginInvoke(new Action(ApplySidebarChromeStrings));
+    }
+
+    private void ApplySidebarChromeStrings()
+    {
+        SidebarNewWorkspaceLabel.Text = L.T("New Workspace");
+        SidebarNotificationsLabel.Text = L.T("Notifications");
+        ThemeToggleButton.ToolTip = L.T("Toggle Theme");
+        SidebarExplorerToggleButton.ToolTip = $"{L.T("Toggle Explorer")} (Ctrl+Shift+E)";
+        ToolbarAgentChatButton.ToolTip = L.T("Toggle Agent Chat (Ctrl+Shift+A)");
+    }
+
+    private void ExplorerSidebar_OpenPathInTerminalRequested(string path)
+    {
+        var surface = ViewModel.SelectedWorkspace?.SelectedSurface;
+        if (surface?.FocusedPaneId is not string paneId)
+            return;
+
+        var session = surface.GetSession(paneId);
+        if (session == null)
+            return;
+
+        var escaped = path.Replace("'", "''");
+        var command = $"Set-Location -LiteralPath '{escaped}'{Environment.NewLine}";
+        session.Write(command);
+        surface.RegisterCommandSubmission(paneId, $"cd {path}");
+        FocusTerminal();
     }
 
     private (SurfaceViewModel Surface, string PaneId)? GetCurrentPaneContext()
@@ -1246,6 +1429,7 @@ public partial class MainWindow : Window
             new() { Id = "open-command-history", Label = L.T("Open Command History"), Icon = "\uE81C", Shortcut = "Ctrl+Alt+H", Category = L.T("History"), Execute = OpenCommandHistoryPicker },
             new() { Id = "insert-last-command", Label = L.T("Insert Last Command"), Icon = "\uE8A7", Shortcut = "Ctrl+Shift+H", Category = L.T("History"), Execute = InsertLastCommandFromHistory },
             new() { Id = "search", Label = L.T("Search"), Icon = "\uE721", Shortcut = "Ctrl+Shift+F", Category = L.T("View"), Execute = () => ToggleSearch() },
+            new() { Id = "toggle-explorer", Label = L.T("Toggle Explorer"), Icon = "\uE838", Shortcut = "Ctrl+Shift+E", Category = L.T("View"), Execute = ToggleExplorerTab },
             new() { Id = "toggle-agent-chat", Label = L.T("Toggle Agent Chat"), Icon = "\uE11B", Shortcut = "Ctrl+Shift+A", Category = L.T("View"), Execute = ToggleAgentChat },
             new() { Id = "zoom-pane", Label = L.T("Zoom Pane"), Icon = "\uE740", Shortcut = "Ctrl+Shift+Z", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.ToggleZoom() },
             new() { Id = "focus-next", Label = L.T("Focus Next Pane"), Icon = "\uE76C", Shortcut = "Ctrl+Alt+Right", Category = L.T("Pane"), Execute = () => ViewModel.SelectedWorkspace?.SelectedSurface?.FocusNextPane() },

@@ -97,6 +97,19 @@ public partial class MainViewModel : ObservableObject
             IconGlyph = source.IconGlyph,
             AccentColor = source.AccentColor,
             WorkingDirectory = source.WorkingDirectory,
+            ExplorerState = new WorkspaceExplorerState
+            {
+                SelectedPath = source.Workspace.ExplorerState.SelectedPath,
+                ExpandedPaths = source.Workspace.ExplorerState.ExpandedPaths.ToList(),
+                Roots = source.Workspace.ExplorerState.Roots
+                    .Select(r => new ExplorerRootConfig
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Path = r.Path,
+                        DisplayName = r.DisplayName,
+                    })
+                    .ToList(),
+            },
         };
 
         var surfaceMap = new Dictionary<string, Surface>();
@@ -295,8 +308,10 @@ public partial class MainViewModel : ObservableObject
         // Capture terminal transcripts and in-memory terminal context before serializing.
         foreach (var workspace in Workspaces)
         {
+            workspace.Explorer.CaptureStateForPersistence();
             foreach (var surface in workspace.Surfaces)
             {
+                surface.SyncWorkingDirectoryHintsForPersistence();
                 surface.CaptureAllPaneTranscripts("session-close");
                 surface.CapturePaneSnapshotsForPersistence();
             }
@@ -307,7 +322,8 @@ public partial class MainViewModel : ObservableObject
             workspaces,
             SelectedWorkspace != null ? Workspaces.IndexOf(SelectedWorkspace) : null,
             windowX, windowY, windowWidth, windowHeight,
-            isMaximized, SidebarWidth, SidebarVisible, CompactSidebar);
+            isMaximized, SidebarWidth, SidebarVisible, CompactSidebar,
+            AgentPanelWidth, AgentPanelVisible, NotificationPanelVisible);
         SessionPersistenceService.Save(state);
     }
 
@@ -322,6 +338,7 @@ public partial class MainViewModel : ObservableObject
                 IconGlyph = string.IsNullOrWhiteSpace(wsState.IconGlyph) ? "\uE8A5" : wsState.IconGlyph,
                 AccentColor = string.IsNullOrWhiteSpace(wsState.AccentColor) ? "#FF818CF8" : wsState.AccentColor,
                 WorkingDirectory = wsState.WorkingDirectory,
+                ExplorerState = wsState.ExplorerState ?? new WorkspaceExplorerState(),
             };
 
             foreach (var surfState in wsState.Surfaces)
@@ -393,7 +410,11 @@ public partial class MainViewModel : ObservableObject
         {
             SidebarWidth = Math.Clamp(session.Window.SidebarWidth, 220, 500);
             SidebarVisible = session.Window.SidebarVisible;
-            CompactSidebar = false;
+            CompactSidebar = session.Window.CompactSidebar;
+            AgentPanelWidth = Math.Clamp(session.Window.AgentPanelWidth, 300, 620);
+            AgentPanelVisible = session.Window.AgentPanelVisible;
+            if (session.Window.NotificationPanelVisible is bool npv)
+                NotificationPanelVisible = npv;
         }
     }
 

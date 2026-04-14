@@ -17,5 +17,6 @@ public class Workspace
     public List<int> ListeningPorts { get; set; } = [];
     public string? LatestNotificationText { get; set; }
     public int UnreadNotificationCount { get; set; }
+    public WorkspaceExplorerState ExplorerState { get; set; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
