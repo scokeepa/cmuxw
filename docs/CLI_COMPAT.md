@@ -62,3 +62,21 @@ Selectors accept:
 - Compatibility is implemented as alias commands on top of the existing Windows command model.
 - Existing commands (`workspace`, `surface`, `pane`, `split`) continue to work.
 - Selector forms keep UUID/ref/index compatibility (`id`, `workspace:n`, `surface:n`, numeric index).
+
+## Verification snapshot (2026-04-14)
+
+Validated in this repository (`dotnet run --project src/Cmux.Cli -- ...`):
+
+- `tree --all` (text token contract: `workspace:<n>`, `surface:<n>`)
+- `tree --all --json`
+- `identify` (`caller.surface_ref`, `caller.workspace_ref`)
+- `capture-pane --workspace workspace:1 --surface surface:1 --lines 20` (plain text default)
+- `set-buffer --name t1 -- "hello"`
+- `paste-buffer --name t1 --workspace workspace:1 --surface surface:1`
+- `set-buffer --surface surface:1 "hello"`
+- `display-message "test"`
+- `claude-hook stop` (`{"ok":true}` contract)
+- `log --level info --source test "hello"` (`{"ok":true}` contract)
+- `send-key --workspace workspace:1 --surface surface:1 enter`
+- `send-key --workspace workspace:1 --surface surface:1 escape`
+- `browser screenshot --surface surface:1 --out C:\temp\shot.png` (file write confirmed)
