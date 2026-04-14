@@ -38,7 +38,7 @@ public partial class App : Application
         DispatcherUnhandledException += (s, args) =>
         {
             System.Diagnostics.Debug.WriteLine($"[CRASH] DispatcherUnhandledException: {args.Exception}");
-            System.Windows.MessageBox.Show($"{L.T("Unexpected error")}: {args.Exception.Message}\n\n{args.Exception.StackTrace}", L.T("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
+            DialogService.Show($"{L.T("Unexpected error")}: {args.Exception.Message}\n\n{args.Exception.StackTrace}", L.T("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
 
@@ -46,7 +46,7 @@ public partial class App : Application
         {
             var ex = args.ExceptionObject as Exception;
             System.Diagnostics.Debug.WriteLine($"[CRASH] UnhandledException: {ex}");
-            System.Windows.MessageBox.Show($"{L.T("Fatal Error")}: {ex?.Message}\n\n{ex?.StackTrace}", L.T("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
+            DialogService.Show($"{L.T("Fatal Error")}: {ex?.Message}\n\n{ex?.StackTrace}", L.T("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
         };
 
         // Start the named pipe server for CLI communication

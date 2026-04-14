@@ -248,7 +248,7 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrWhiteSpace(_selectedAgentThreadId))
         {
-            MessageBox.Show(L.T("Select a thread to clear."), L.T("Agent"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show(L.T("Select a thread to clear."), L.T("Agent"), MessageBoxButton.OK, MessageBoxImage.Information, this);
             return;
         }
 
@@ -806,11 +806,12 @@ public partial class MainWindow : Window
     }
     private void MenuAbout_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(
+        DialogService.Show(
             L.T("cmuxw for Windows\nA terminal multiplexer for AI coding workflows with built-in browser surfaces and automation support."),
             L.T("About cmux"),
             MessageBoxButton.OK,
-            MessageBoxImage.Information);
+            MessageBoxImage.Information,
+            this);
     }
 
     // Toolbar handlers
@@ -1479,11 +1480,12 @@ public partial class MainWindow : Window
                 if (toClose.Any(surface.PaneHasNotableActivity))
                     line += "\n\n" + L.T("Layout shrink active sessions hint");
 
-                if (MessageBox.Show(
+                if (DialogService.Show(
                         line,
                         L.T("Change layout"),
                         MessageBoxButton.OKCancel,
-                        MessageBoxImage.Warning) != MessageBoxResult.OK)
+                        MessageBoxImage.Warning,
+                        this) != MessageBoxResult.OK)
                     return;
 
                 foreach (var id in toClose)
@@ -1626,11 +1628,12 @@ public partial class MainWindow : Window
             if (surface.RootNode.GetLeaves().Any(l => l.PaneId != null && surface.PaneHasNotableActivity(l.PaneId!)))
                 line += "\n\n" + L.T("Layout shrink active sessions hint");
 
-            if (MessageBox.Show(
+            if (DialogService.Show(
                     line,
                     L.T("Change layout"),
                     MessageBoxButton.OKCancel,
-                    MessageBoxImage.Warning) != MessageBoxResult.OK)
+                    MessageBoxImage.Warning,
+                    this) != MessageBoxResult.OK)
                 return;
         }
 
@@ -1888,7 +1891,7 @@ public partial class MainWindow : Window
         var history = surface.GetCommandHistory(paneId);
         if (history.Count == 0)
         {
-            MessageBox.Show(L.T("No command history found yet for this pane."), L.T("History"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show(L.T("No command history found yet for this pane."), L.T("History"), MessageBoxButton.OK, MessageBoxImage.Information, this);
             return;
         }
 
@@ -1918,7 +1921,7 @@ public partial class MainWindow : Window
         var history = surface.GetCommandHistory(paneId);
         if (history.Count == 0)
         {
-            MessageBox.Show(L.T("No command history found yet for this pane."), L.T("History"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show(L.T("No command history found yet for this pane."), L.T("History"), MessageBoxButton.OK, MessageBoxImage.Information, this);
             return;
         }
 

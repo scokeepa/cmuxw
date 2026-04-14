@@ -275,13 +275,13 @@ public partial class SettingsWindow : Window
         agent.EnableTargetSubmitProfiles = AgentEnableSubmitProfilesCheck.IsChecked == true;
         if (!TryParseSubmitProfilesJson(AgentSubmitProfilesJsonBox.Text, out var submitProfiles, out var submitProfilesParseError))
         {
-            MessageBox.Show(submitProfilesParseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(submitProfilesParseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return false;
         }
 
         if (!ValidateSubmitProfiles(submitProfiles, out var submitProfilesValidationError))
         {
-            MessageBox.Show(submitProfilesValidationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(submitProfilesValidationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return false;
         }
 
@@ -312,13 +312,13 @@ public partial class SettingsWindow : Window
         {
             if (!TryParseCustomToolsJson(CustomToolsJsonBox.Text, out var parsedTools, out var parseError))
             {
-                MessageBox.Show(parseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Show(parseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
                 return false;
             }
 
             if (!ValidateCustomTools(parsedTools, out var validationError))
             {
-                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
                 return false;
             }
 
@@ -331,7 +331,7 @@ public partial class SettingsWindow : Window
         {
             if (!ValidateCustomTools(_customToolsDraft, out var validationError))
             {
-                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
                 return false;
             }
 
@@ -345,13 +345,13 @@ public partial class SettingsWindow : Window
         {
             if (!TryParseMcpServersJson(McpServersJsonBox.Text, out var parsedServers, out var parseError))
             {
-                MessageBox.Show(parseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Show(parseError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
                 return false;
             }
 
             if (!ValidateMcpServers(parsedServers, out var validationError))
             {
-                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
                 return false;
             }
 
@@ -364,7 +364,7 @@ public partial class SettingsWindow : Window
         {
             if (!ValidateMcpServers(_mcpServersDraft, out var validationError))
             {
-                MessageBox.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                DialogService.Show(validationError, L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
                 return false;
             }
 
@@ -442,11 +442,12 @@ public partial class SettingsWindow : Window
 
     private void ClearAllSessionDataButton_Click(object sender, RoutedEventArgs e)
     {
-        var confirm = MessageBox.Show(
+        var confirm = DialogService.Show(
             L.T("This permanently deletes session.json (window layout) and all agent conversation threads. The app will restart. Continue?"),
             L.T("Clear all session data"),
             MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            MessageBoxImage.Warning,
+            this);
 
         if (confirm != MessageBoxResult.Yes)
             return;
@@ -655,13 +656,13 @@ public partial class SettingsWindow : Window
 
         if (string.IsNullOrWhiteSpace(draft.Name))
         {
-            MessageBox.Show(L.T("Custom tool name is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T("Custom tool name is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(draft.CommandTemplate))
         {
-            MessageBox.Show(L.T("Custom tool command template is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T("Custom tool command template is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return;
         }
 
@@ -698,13 +699,13 @@ public partial class SettingsWindow : Window
 
         if (string.IsNullOrWhiteSpace(draft.Name))
         {
-            MessageBox.Show(L.T("MCP server name is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T("MCP server name is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(draft.Command))
         {
-            MessageBox.Show(L.T("MCP server command is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T("MCP server command is required."), L.T("Settings"), MessageBoxButton.OK, MessageBoxImage.Warning, this);
             return;
         }
 

@@ -140,7 +140,7 @@ public partial class SnippetPicker : UserControl
         var content = NewSnippetContent.Text.Trim();
         if (string.IsNullOrWhiteSpace(content))
         {
-            MessageBox.Show(L.T("Snippet command/content cannot be empty."), L.T("Snippet"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show(L.T("Snippet command/content cannot be empty."), L.T("Snippet"), MessageBoxButton.OK, MessageBoxImage.Information, Window.GetWindow(this));
             NewSnippetContent.Focus();
             return;
         }
@@ -229,11 +229,12 @@ public partial class SnippetPicker : UserControl
         var snippet = GetSnippetFromSender(sender);
         if (snippet == null) return;
 
-        var result = MessageBox.Show(
+        var result = DialogService.Show(
             string.Format(L.T("Delete snippet '{0}'?"), snippet.Name),
             L.T("Delete Snippet"),
             MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            MessageBoxImage.Warning,
+            Window.GetWindow(this));
 
         if (result == MessageBoxResult.Yes)
         {

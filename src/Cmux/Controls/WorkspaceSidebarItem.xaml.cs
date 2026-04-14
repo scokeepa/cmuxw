@@ -85,8 +85,8 @@ public partial class WorkspaceSidebarItem : UserControl
 
         if (value.StartsWith("<svg", StringComparison.OrdinalIgnoreCase))
         {
-            MessageBox.Show(L.T("SVG is not supported in workspace icon yet. Use emoji/symbol or MDL2 hex code."),
-                L.T("Workspace Icon"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show(L.T("SVG is not supported in workspace icon yet. Use emoji/symbol or MDL2 hex code."),
+                L.T("Workspace Icon"), MessageBoxButton.OK, MessageBoxImage.Information, Window.GetWindow(this));
             return;
         }
 

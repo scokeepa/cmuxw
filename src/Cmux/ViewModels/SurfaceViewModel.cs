@@ -232,7 +232,7 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         if (string.IsNullOrWhiteSpace(paneId))
             return;
 
-        if (MessageBox.Show(
+        if (DialogService.Show(
                 L.T("Reset this pane session?"),
                 L.T("Confirm Action"),
                 MessageBoxButton.YesNo,
@@ -887,9 +887,13 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
 
         // Keep at least one pane in a surface.
         var leaves = RootNode.GetLeaves().ToList();
-        if (leaves.Count <= 1) return;
+        if (leaves.Count <= 1)
+        {
+            TryCloseOwningWorkspaceFromLastPane();
+            return;
+        }
 
-        if (MessageBox.Show(
+        if (DialogService.Show(
                 L.T("Close this pane?"),
                 L.T("Confirm Action"),
                 MessageBoxButton.YesNo,
@@ -927,6 +931,18 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
             FocusedPaneId = nextPaneId;
 
         OnPropertyChanged(nameof(RootNode));
+    }
+
+    private void TryCloseOwningWorkspaceFromLastPane()
+    {
+        if (Application.Current?.MainWindow?.DataContext is not MainViewModel mainVm)
+            return;
+
+        var workspace = mainVm.Workspaces.FirstOrDefault(w => w.Workspace.Id == _workspaceId);
+        if (workspace == null)
+            return;
+
+        mainVm.CloseWorkspace(workspace);
     }
 
     public void FocusPane(string paneId)

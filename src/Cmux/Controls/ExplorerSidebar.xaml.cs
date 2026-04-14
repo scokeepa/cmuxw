@@ -75,7 +75,7 @@ public partial class ExplorerSidebar : UserControl
 
         if (!Vm.TryAddRoot(dialog.FolderName.Trim(), out var error))
         {
-            MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning, Window.GetWindow(this));
             return false;
         }
 
@@ -206,7 +206,7 @@ public partial class ExplorerSidebar : UserControl
         if (prompt.ShowDialog() != true)
             return;
         if (!Vm.TryCreateFile(node, prompt.ResponseText.Trim(), out _, out var error))
-            MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning, Window.GetWindow(this));
         await Vm.RefreshNodeAsync(node.IsDirectory ? node : node.Parent);
     }
 
@@ -219,7 +219,7 @@ public partial class ExplorerSidebar : UserControl
         if (prompt.ShowDialog() != true)
             return;
         if (!Vm.TryCreateFolder(node, prompt.ResponseText.Trim(), out _, out var error))
-            MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning, Window.GetWindow(this));
         await Vm.RefreshNodeAsync(node.IsDirectory ? node : node.Parent);
     }
 
@@ -232,7 +232,7 @@ public partial class ExplorerSidebar : UserControl
         if (prompt.ShowDialog() != true)
             return;
         if (!Vm.TryRename(node, prompt.ResponseText.Trim(), out _, out var error))
-            MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning, Window.GetWindow(this));
         await Vm.RefreshNodeAsync(node.Parent ?? node);
     }
 
@@ -242,13 +242,13 @@ public partial class ExplorerSidebar : UserControl
         if (Vm == null || node == null) return;
 
         var msg = string.Format(L.T("Delete '{0}'?"), node.DisplayName);
-        if (MessageBox.Show(msg, L.T("Explorer"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        if (DialogService.Show(msg, L.T("Explorer"), MessageBoxButton.YesNo, MessageBoxImage.Warning, Window.GetWindow(this)) != MessageBoxResult.Yes)
             return;
 
         var parent = node.Parent;
         if (!Vm.TryDelete(node, out var error))
         {
-            MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning, Window.GetWindow(this));
             return;
         }
 
@@ -390,7 +390,7 @@ public partial class ExplorerSidebar : UserControl
         }
         else
         {
-            MessageBox.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogService.Show(L.T(error), L.T("Explorer"), MessageBoxButton.OK, MessageBoxImage.Warning, Window.GetWindow(this));
         }
     }
 
