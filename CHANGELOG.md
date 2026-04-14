@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.7 - 2026-04-14
+
+- Replaced native Windows `MessageBox` usage with a themed in-app dialog system (`DialogService` + `AppDialogWindow`) for consistent UX.
+- Added explicit confirmation prompts for pane close, side-tab close, pane session reset, and workspace close flows.
+- Updated last-pane behavior so closing the final pane in a workspace is interpreted as workspace-close intent and routed through workspace confirmation.
+- Refreshed `README.md` (English/Korean) to document the dialog and close-confirmation behavior changes.
+
 ## v0.1.4 - 2026-04-14
 
 ### Theme engine rewrite — Cursor-style light/dark mode
