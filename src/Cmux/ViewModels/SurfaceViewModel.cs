@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Cmux.Core.Config;
@@ -229,6 +230,13 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
     public void ResetPaneSession(string paneId)
     {
         if (string.IsNullOrWhiteSpace(paneId))
+            return;
+
+        if (MessageBox.Show(
+                L.T("Reset this pane session?"),
+                L.T("Confirm Action"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 
         if (IsBrowserPane(paneId))
@@ -880,6 +888,13 @@ public partial class SurfaceViewModel : ObservableObject, IDisposable
         // Keep at least one pane in a surface.
         var leaves = RootNode.GetLeaves().ToList();
         if (leaves.Count <= 1) return;
+
+        if (MessageBox.Show(
+                L.T("Close this pane?"),
+                L.T("Confirm Action"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
 
         CapturePaneTranscript(paneId, "pane-close");
 
