@@ -126,7 +126,7 @@ public partial class WorkspaceViewModel : ObservableObject, IDisposable
         if (surface == null) return;
         if (Surfaces.Count <= 1) return; // Keep at least one
 
-        if (MessageBox.Show(
+        if (DialogService.Show(
                 L.T("Close this side tab?"),
                 L.T("Confirm Action"),
                 MessageBoxButton.YesNo,

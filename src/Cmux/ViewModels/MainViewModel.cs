@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Cmux.Core.IPC;
 using Cmux.Core.Models;
 using Cmux.Core.Services;
+using Cmux.Services;
 
 namespace Cmux.ViewModels;
 
@@ -190,12 +191,23 @@ public partial class MainViewModel : ObservableObject
     public void CloseWorkspace(WorkspaceViewModel? workspace)
     {
         if (workspace == null) return;
-        if (Workspaces.Count <= 1) return; // Keep at least one
+
+        var message = string.Format(L.T("Close workspace '{0}'?"), workspace.Name);
+        if (!DialogService.Confirm(message, L.T("Confirm Action")))
+            return;
+
+        var closingLastWorkspace = Workspaces.Count <= 1;
 
         int index = Workspaces.IndexOf(workspace);
         workspace.CaptureAllSurfaceTranscripts("workspace-close");
         workspace.Dispose();
         Workspaces.Remove(workspace);
+
+        if (closingLastWorkspace)
+        {
+            CreateNewWorkspace();
+            return;
+        }
 
         if (SelectedWorkspace == workspace)
         {

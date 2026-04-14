@@ -277,7 +277,7 @@ public partial class LogsWindow : Window
         var surface = ownerVm?.SelectedWorkspace?.SelectedSurface;
         if (surface?.FocusedPaneId is not string paneId)
         {
-            MessageBox.Show(L.T("No focused pane available."), L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show(L.T("No focused pane available."), L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information, this);
             return false;
         }
 
@@ -350,7 +350,7 @@ public partial class LogsWindow : Window
         }
         catch
         {
-            MessageBox.Show($"{L.T("Logs folder")}: {dir}", L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show($"{L.T("Logs folder")}: {dir}", L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information, this);
         }
     }
 
@@ -367,7 +367,7 @@ public partial class LogsWindow : Window
         }
         catch
         {
-            MessageBox.Show($"{L.T("Terminal captures folder")}: {dir}", L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogService.Show($"{L.T("Terminal captures folder")}: {dir}", L.T("Logs"), MessageBoxButton.OK, MessageBoxImage.Information, this);
         }
     }
 
