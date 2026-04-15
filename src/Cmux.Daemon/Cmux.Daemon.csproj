@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cmux.Core\Cmux.Core.csproj" />
+    <PackageReference Include="Microsoft.Win32.SystemEvents" Version="9.0.0" />
   </ItemGroup>
 
 </Project>
