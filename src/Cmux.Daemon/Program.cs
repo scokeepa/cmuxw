@@ -44,6 +44,8 @@ sessionManager.SessionExited += (paneId, exitCode) =>
     Log($"[cmux-daemon] Session exited: {paneId} code={exitCode} (total: {sessionManager.ActiveSessionCount})");
 };
 
+LidPauseWatcher.Start(Log);
+
 Log("[cmux-daemon] Starting pipe server...");
 // Run pipe server on a dedicated background thread (synchronous I/O)
 var serverThread = new Thread(() =>
